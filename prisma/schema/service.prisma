@@ -1,0 +1,28 @@
+model ServiceCategory {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  // relationships
+  services Service[]
+
+  @@map("service_categories")
+}
+
+model Service {
+  id            String     @id @default(cuid())
+  name          String
+  categoryId    String
+  description   String?
+  device        DeviceType
+  price         Decimal    @db.Decimal(10, 2)
+  notes         String?
+  estimatedTime String
+  isActive      Boolean    @default(true)
+
+  // relationships
+  category ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("services")
+}

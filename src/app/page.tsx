@@ -1,62 +1,10 @@
 import Image from "next/image";
-import {auth, signIn, signOut} from "@/lib/auth";
+import { Navigation } from "@/components/navigation";
 
-export default async function Home() {
-    const session = await auth();
-
+export default function Home() {
     return (
         <div className="font-sans min-h-screen">
-            {/* Navigation */}
-            <nav className="bg-gray-100 dark:bg-gray-800 p-4 border-b">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <h1 className="text-xl font-semibold">Laptop Care Service</h1>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        {session?.user ? (
-                            <div className="flex items-center gap-4">
-                                <div className="text-sm">
-                                    <p className="font-medium">{session.user.name || 'User'}</p>
-                                    <p className="text-gray-600 dark:text-gray-400">{session.user.email}</p>
-                                </div>
-                                {session.user.image && (
-                                    <Image
-                                        src={session.user.image}
-                                        alt="Profile"
-                                        width={32}
-                                        height={32}
-                                        className="rounded-full"
-                                    />
-                                )}
-                                <form action={async () => {
-                                    "use server";
-                                    await signOut();
-                                }}>
-                                    <button
-                                        type="submit"
-                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm"
-                                    >
-                                        Sign Out
-                                    </button>
-                                </form>
-                            </div>
-                        ) : (
-                            <form action={async () => {
-                                "use server";
-                                await signIn();
-                            }}>
-                                <button
-                                    type="submit"
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm"
-                                >
-                                    Sign In
-                                </button>
-                            </form>
-                        )}
-                    </div>
-                </div>
-            </nav>
+            <Navigation />
 
             {/* Main Content */}
             <div className="grid grid-rows-[1fr_20px] items-center justify-items-center p-8 pb-20 gap-16 sm:p-20">

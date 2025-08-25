@@ -19,3 +19,31 @@ enum ContactMethod {
 
   @@map("contact_method")
 }
+
+enum DeviceType {
+  LAPTOP
+  DESKTOP
+  PRINTER
+
+  @@map("device_type")
+}
+
+enum DeviceRepairStatus {
+  PENDING_START
+  IN_PROGRESS
+  COMPLETED
+  AWAITING_PARTS
+  CANCELLED
+
+  @@map("device_repair_status")
+}
+
+enum DevicePartStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  USED
+  DEFECTIVE
+  CUSTOMER
+
+  @@map("device_part_status")
+}
