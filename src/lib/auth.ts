@@ -21,6 +21,11 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
             from: process.env.EMAIL_FROM,
         }),
     ],
+    pages: {
+        signIn: '/auth/signin',
+        error: '/auth/signin', // Redirect errors to a custom sign-in page
+        verifyRequest: '/auth/verify-request', // Custom verify request page
+    },
     session: {
         strategy: "database",
         maxAge: 30 * 24 * 60 * 60,

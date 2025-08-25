@@ -28,7 +28,7 @@ export function AuthButtons() {
 
     if (!session) {
         return (
-            <Button onClick={() => signIn()} variant="outline" size="sm">
+            <Button onClick={() => signIn(undefined, { callbackUrl: window.location.href })} variant="outline" size="sm">
                 Sign In
             </Button>
         )
