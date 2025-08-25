@@ -1,0 +1,21 @@
+enum CustomerRole {
+  INDIVIDUAL
+  COMPANY
+
+  @@map("customer_role")
+}
+
+enum StaffRole {
+  TECHNICIAN
+  RECEPTIONIST
+  ADMINISTRATOR
+
+  @@map("staff_role")
+}
+
+enum ContactMethod {
+  EMAIL
+  PHONE
+
+  @@map("contact_method")
+}
