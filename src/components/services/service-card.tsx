@@ -3,12 +3,13 @@
 import {Card, CardContent, CardHeader, CardTitle, CardFooter} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
-import {Clock, Monitor, Laptop, Printer, Wrench} from 'lucide-react'
+import {Clock, Monitor, Laptop, Printer, Wrench, Eye} from 'lucide-react'
 import type {ServiceListItem} from '@/lib/prisma/service'
 
 interface ServiceCardProps {
     service: ServiceListItem
     onRequestService?: (serviceId: string) => void
+    onMoreDetails?: (serviceId: string) => void
     showUnavailable?: boolean
 }
 
@@ -24,7 +25,7 @@ const deviceTypeLabels = {
     PRINTER: 'Printer Service',
 } as const
 
-export function ServiceCard({service, onRequestService, showUnavailable = false}: ServiceCardProps) {
+export function ServiceCard({service, onRequestService, onMoreDetails, showUnavailable = false}: ServiceCardProps) {
     const DeviceIcon = deviceTypeIcons[service.device]
     const deviceLabel = deviceTypeLabels[service.device]
 
@@ -40,10 +41,15 @@ export function ServiceCard({service, onRequestService, showUnavailable = false}
         }
     }
 
+    const handleMoreDetails = () => {
+        if (onMoreDetails) {
+            onMoreDetails(service.id)
+        }
+    }
+
     return (
         <Card className={`h-full transition-all duration-200 hover:shadow-lg ${
-            isUnavailable ? 'opacity-60' : 'hover:shadow-md'
-        }`}>
+            isUnavailable ? 'opacity-60' : 'hover:shadow-md'}`}>
             <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${
@@ -90,26 +96,26 @@ export function ServiceCard({service, onRequestService, showUnavailable = false}
                             </span>
                         </span>
                     </div>
-
-                    {/* Device Type Badge */}
-                    <div className="flex items-center gap-2">
-                        <Badge
-                            variant={isUnavailable ? "secondary" : "outline"}
-                            className="w-fit">
-                            {deviceLabel}
-                        </Badge>
-                    </div>
                 </div>
             </CardContent>
 
             <CardFooter className="pt-2">
-                <div className="w-full space-y-2">
+                <div className="w-full space-y-3">
                     <Button
                         className="w-full text-white"
                         onClick={handleRequestService}
                         disabled={isUnavailable}
                         variant={isUnavailable ? "secondary" : "default"}>
                         {isUnavailable ? 'Currently Unavailable' : 'Request This Service'}
+                    </Button>
+
+                    <Button
+                        className="w-full"
+                        onClick={handleMoreDetails}
+                        variant="outline"
+                        size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        More Details
                     </Button>
 
                     <div className="flex justify-between items-center text-xs text-muted-foreground">

@@ -21,12 +21,14 @@ const deviceTypeLabels = {
     PRINTER: 'Printers'
 } as const
 
-const minPrices = [0, 25, 50, 100, 200, 500]
-const maxPrices = [50, 100, 200, 500, 1000, 2000]
-
 export function ServiceFilters({categories, filters, onFiltersChange, isLoading}: ServiceFiltersProps) {
     const [localSearch, setLocalSearch] = useState(filters.search || '')
     const [showAllCategories, setShowAllCategories] = useState(false)
+
+    // Sync external filter changes with local state
+    useEffect(() => {
+        setLocalSearch(filters.search || '')
+    }, [filters.search])
 
     // Debounced search
     useEffect(() => {
@@ -37,7 +39,7 @@ export function ServiceFilters({categories, filters, onFiltersChange, isLoading}
         }, 300)
 
         return () => clearTimeout(timer)
-    }, [localSearch, filters, onFiltersChange])
+    }, [localSearch]) // ✅ FIXED: Only depend on localSearch
 
     const handleDeviceTypeChange = (deviceType: DeviceType) => {
         const newDeviceType = filters.deviceType === deviceType ? undefined : deviceType
@@ -111,7 +113,7 @@ export function ServiceFilters({categories, filters, onFiltersChange, isLoading}
                                     key={type}
                                     variant={isSelected ? "default" : "outline"}
                                     size="sm"
-                                    className="w-full text-white justify-start"
+                                    className="w-full justify-start"
                                     onClick={() => handleDeviceTypeChange(deviceType)}
                                     disabled={isLoading}>
                                     {label}

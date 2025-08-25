@@ -1,152 +1,67 @@
 'use client'
 
-import {useState, useEffect, useCallback, useMemo} from 'react'
+import {useEffect} from 'react'
 import {ServiceFilters} from '@/components/services/service-filters'
 import {ServiceCard} from '@/components/services/service-card'
+import {ServiceDetailsModal} from '@/components/services/service-details-modal'
 import {Button} from '@/components/ui/button'
 import {Skeleton} from '@/components/ui/skeleton'
 import {Alert, AlertDescription} from '@/components/ui/alert'
-import {getServiceListAction, getServiceCategoriesAction} from '@/lib/actions/service'
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from '@/components/ui/pagination'
 import {AlertTriangle, RefreshCw, Grid, List} from 'lucide-react'
-import type {ServiceListItem, ServiceFilters as ServiceFiltersType, CategoryWithServices} from '@/lib/prisma/service'
-
-interface ServicesPageState {
-    services: ServiceListItem[]
-    categories: CategoryWithServices[]
-    filters: ServiceFiltersType
-    loading: boolean
-    error: string | null
-    total: number
-    page: number
-    hasMore: boolean
-}
-
-const SERVICES_PER_PAGE = 12
+import {useServicesStore} from '@/stores/services-store'
 
 export function ServicesPageContent() {
-    const [state, setState] = useState<ServicesPageState>({
-        services: [],
-        categories: [],
-        filters: {isActive: true}, // Default to showing only active services
-        loading: true,
-        error: null,
-        total: 0,
-        page: 1,
-        hasMore: false
-    })
+    // Zustand store state
+    const {
+        services,
+        categories,
+        total,
+        currentPage,
+        loading,
+        error,
+        filters,
+        viewMode,
+        selectedServiceId,
+        isModalOpen,
+        servicesPerPage,
+        // Actions
+        loadServices,
+        loadCategories,
+        setFilters,
+        resetFilters,
+        setViewMode,
+        setCurrentPage,
+        openModal,
+        closeModal,
+        retry,
+    } = useServicesStore()
 
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-    const [loadingMore, setLoadingMore] = useState(false)
+    // Computed values (directly from store to avoid extra subscriptions)
+    const totalPages = Math.ceil(total / servicesPerPage)
+    const hasServices = services.length > 0
 
-    // Load categories on mount
+    // Load data on mount
     useEffect(() => {
-        async function loadCategories() {
-            try {
-                const result = await getServiceCategoriesAction()
-                if (result.success && result.data) {
-                    setState(prev => ({...prev, categories: result.data!}))
-                }
-            } catch (error) {
-                console.error('Failed to load categories:', error)
-            }
-        }
-
         loadCategories()
-    }, [])
+        loadServices(1)
+    }, [loadCategories, loadServices]) // Empty dependency array - only run once on mount
 
-    // Memoize the current filters to prevent unnecessary re-renders
-    const filtersRef = useMemo(() => state.filters, [
-        state.filters.search,
-        state.filters.categoryId, 
-        state.filters.deviceType,
-        state.filters.isActive,
-        state.filters.priceRange?.min,
-        state.filters.priceRange?.max
-    ])
-
-    const loadServices = useCallback(async (reset = false) => {
-        const targetPage = reset ? 1 : state.page
-        const isInitialLoad = reset
-
-        if (!isInitialLoad) setLoadingMore(true)
-
-        try {
-            setState(prev => ({
-                ...prev,
-                loading: isInitialLoad,
-                error: null
-            }))
-
-            const result = await getServiceListAction(
-                state.filters,
-                targetPage,
-                SERVICES_PER_PAGE
-            )
-
-            if (result.success && result.data) {
-                const {services, total} = result.data
-                const hasMore = targetPage * SERVICES_PER_PAGE < total
-
-                setState(prev => ({
-                    ...prev,
-                    services: reset ? services : [...prev.services, ...services],
-                    total,
-                    page: targetPage,
-                    hasMore,
-                    loading: false,
-                    error: null
-                }))
-            } else {
-                setState(prev => ({
-                    ...prev,
-                    loading: false,
-                    error: result.error || 'Failed to load services'
-                }))
-            }
-        } catch (error) {
-            setState(prev => ({
-                ...prev,
-                loading: false,
-                error: 'An unexpected error occurred'
-            }))
-        } finally {
-            setLoadingMore(false)
-        }
-    }, [state.page, state.filters])
-
-    // Load services when filters change
-    useEffect(() => {
-        void loadServices(true)
-    }, [filtersRef])
-
-    const handleFiltersChange = (newFilters: ServiceFiltersType) => {
-        setState(prev => ({
-            ...prev,
-            filters: newFilters,
-            page: 1
-        }))
-    }
-
-    const handleLoadMore = () => {
-        setState(prev => ({
-            ...prev,
-            page: prev.page + 1
-        }))
-        loadServices(false)
-    }
-
+    // Event handlers
     const handleRequestService = (serviceId: string) => {
-        // This would typically navigate to a service request page or open a modal
         console.log('Request service:', serviceId)
-        // For now, we'll just show an alert
         alert(`Service request for ${serviceId} - This would typically open a booking form or redirect to a request page.`)
     }
 
-    const handleRetry = () => {
-        loadServices(true)
-    }
-
-    if (state.loading && state.services.length === 0) {
+    if (loading && !hasServices) {
         return <ServicesPageSkeleton/>
     }
 
@@ -158,7 +73,6 @@ export function ServicesPageContent() {
                 <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
                     Choose from our comprehensive range of technical services designed to keep your devices running
                     smoothly.
-                    Our expert technicians are ready to help with laptops, desktops, and printers.
                 </p>
             </div>
 
@@ -166,10 +80,10 @@ export function ServicesPageContent() {
                 {/* Filters Sidebar */}
                 <aside className="lg:w-80 flex-shrink-0">
                     <ServiceFilters
-                        categories={state.categories}
-                        filters={state.filters}
-                        onFiltersChange={handleFiltersChange}
-                        isLoading={state.loading}
+                        categories={categories}
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        isLoading={loading}
                     />
                 </aside>
 
@@ -179,15 +93,15 @@ export function ServicesPageContent() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
                             <h2 className="text-xl font-semibold">
-                                {state.total > 0 ? (
+                                {total > 0 ? (
                                     <>
-                                        {state.total} Service{state.total !== 1 ? 's' : ''} Found
+                                        {total} Service{total !== 1 ? 's' : ''} Found
                                     </>
                                 ) : (
                                     'No Services Found'
                                 )}
                             </h2>
-                            {state.loading && (
+                            {loading && (
                                 <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground"/>
                             )}
                         </div>
@@ -212,12 +126,12 @@ export function ServicesPageContent() {
                     </div>
 
                     {/* Error State */}
-                    {state.error && (
+                    {error && (
                         <Alert className="mb-6">
                             <AlertTriangle className="h-4 w-4"/>
                             <AlertDescription className="flex items-center justify-between">
-                                <span>{state.error}</span>
-                                <Button variant="outline" size="sm" onClick={handleRetry}>
+                                <span>{error}</span>
+                                <Button variant="outline" size="sm" onClick={retry}>
                                     Try Again
                                 </Button>
                             </AlertDescription>
@@ -225,42 +139,39 @@ export function ServicesPageContent() {
                     )}
 
                     {/* Services Grid/List */}
-                    {state.services.length > 0 ? (
+                    {services.length > 0 ? (
                         <>
                             <div className={
                                 viewMode === 'grid'
                                     ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                                     : "space-y-4"
                             }>
-                                {state.services.map((service) => (
+                                {services.map((service) => (
                                     <ServiceCard
                                         key={service.id}
                                         service={service}
                                         onRequestService={handleRequestService}
-                                        showUnavailable={state.filters.isActive === false}
+                                        onMoreDetails={openModal}
+                                        showUnavailable={filters.isActive === false}
                                     />
                                 ))}
                             </div>
 
-                            {/* Load More */}
-                            {state.hasMore && (
-                                <div className="text-center mt-8">
-                                    <Button
-                                        onClick={handleLoadMore}
-                                        disabled={loadingMore}
-                                        variant="outline"
-                                        size="lg"
-                                    >
-                                        {loadingMore ? (
-                                            <RefreshCw className="h-4 w-4 animate-spin mr-2"/>
-                                        ) : null}
-                                        {loadingMore ? 'Loading...' : 'Load More Services'}
-                                    </Button>
+                            {/* Pagination */}
+                            {total > 0 && (
+                                <div className="mt-8">
+                                    <CustomPagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        totalItems={total}
+                                        itemsPerPage={servicesPerPage}
+                                        onPageChange={setCurrentPage}
+                                    />
                                 </div>
                             )}
                         </>
                     ) : (
-                        !state.loading && (
+                        !loading && (
                             <div className="text-center py-12">
                                 <div className="text-muted-foreground mb-4">
                                     <Grid className="h-12 w-12 mx-auto mb-4 opacity-50"/>
@@ -269,7 +180,7 @@ export function ServicesPageContent() {
                                 </div>
                                 <Button
                                     variant="outline"
-                                    onClick={() => handleFiltersChange({isActive: true})}
+                                    onClick={resetFilters}
                                 >
                                     Reset Filters
                                 </Button>
@@ -278,6 +189,149 @@ export function ServicesPageContent() {
                     )}
                 </main>
             </div>
+
+            {/* Service Details Modal */}
+            <ServiceDetailsModal
+                serviceId={selectedServiceId}
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                onRequestService={handleRequestService}
+            />
+        </div>
+    )
+}
+
+// Custom pagination component using shadcn components
+function CustomPagination({
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    onPageChange
+}: {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    itemsPerPage: number
+    onPageChange: (page: number) => void
+}) {
+    const startItem = (currentPage - 1) * itemsPerPage + 1
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems)
+
+    // Generate page numbers to display
+    const getVisiblePages = () => {
+        const pages: (number | 'ellipsis')[] = []
+        const maxVisiblePages = 5
+
+        if (totalPages <= maxVisiblePages) {
+            // Show all pages if total is small
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i)
+            }
+        } else {
+            // Always show first page
+            pages.push(1)
+
+            let startPage = Math.max(2, currentPage - 1)
+            let endPage = Math.min(totalPages - 1, currentPage + 1)
+
+            // Adjust range if near beginning or end
+            if (currentPage <= 3) {
+                endPage = Math.min(4, totalPages - 1)
+            }
+            if (currentPage >= totalPages - 2) {
+                startPage = Math.max(2, totalPages - 3)
+            }
+
+            // Add ellipsis after first page if needed
+            if (startPage > 2) {
+                pages.push('ellipsis')
+            }
+
+            // Add middle pages
+            for (let i = startPage; i <= endPage; i++) {
+                pages.push(i)
+            }
+
+            // Add ellipsis before last page if needed
+            if (endPage < totalPages - 1) {
+                pages.push('ellipsis')
+            }
+
+            // Always show last page
+            if (totalPages > 1) {
+                pages.push(totalPages)
+            }
+        }
+
+        return pages
+    }
+
+    if (totalPages <= 1) {
+        return (
+            <div className="flex items-center justify-center text-sm text-muted-foreground py-4">
+                Showing {startItem} - {endItem} of {totalItems} services
+            </div>
+        )
+    }
+
+    return (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Items info */}
+            <div className="text-sm text-muted-foreground">
+                Showing {startItem} - {endItem} of {totalItems} services
+            </div>
+
+            {/* Pagination */}
+            <Pagination>
+                <PaginationContent>
+                    {/* Previous button */}
+                    <PaginationItem>
+                        <PaginationPrevious 
+                            onClick={(e) => {
+                                e.preventDefault()
+                                if (currentPage > 1) {
+                                    onPageChange(currentPage - 1)
+                                }
+                            }}
+                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                    </PaginationItem>
+
+                    {/* Page numbers */}
+                    {getVisiblePages().map((page, index) => (
+                        <PaginationItem key={index}>
+                            {page === 'ellipsis' ? (
+                                <PaginationEllipsis />
+                            ) : (
+                                <PaginationLink
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        onPageChange(page as number)
+                                    }}
+                                    isActive={currentPage === page}
+                                    className="cursor-pointer"
+                                >
+                                    {page}
+                                </PaginationLink>
+                            )}
+                        </PaginationItem>
+                    ))}
+
+                    {/* Next button */}
+                    <PaginationItem>
+                        <PaginationNext 
+                            onClick={(e) => {
+                                e.preventDefault()
+                                if (currentPage < totalPages) {
+                                    onPageChange(currentPage + 1)
+                                }
+                            }}
+                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                    </PaginationItem>
+                </PaginationContent>
+            </Pagination>
         </div>
     )
 }

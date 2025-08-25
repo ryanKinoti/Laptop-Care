@@ -2,6 +2,22 @@ import {prisma} from '@/lib/prisma/prisma'
 import type {Service, ServiceCategory, Prisma} from '@prisma/client'
 import {DeviceType} from '@prisma/client'
 
+// Type for service with included category using Prisma's type utilities
+type ServiceWithCategoryRelation = Prisma.ServiceGetPayload<{
+    include: { category: true }
+}>
+
+// Types for groupBy results
+type DeviceGroupByResult = {
+    device: DeviceType
+    _count: number
+}
+
+type CategoryGroupByResult = {
+    categoryId: string
+    _count: number
+}
+
 export type ServiceWithCategory = Omit<Service, 'price'> & {
     category: ServiceCategory
     price: number
@@ -28,8 +44,13 @@ export type ServiceFilters = {
     }
 }
 
+// Type for service with converted price for client components
+type ServiceForClient = Omit<Service, 'price'> & {
+    price: number
+}
+
 export type CategoryWithServices = ServiceCategory & {
-    services: Service[]
+    services: ServiceForClient[]
     _count: {
         services: number
     }
@@ -74,24 +95,23 @@ export class ServiceService {
             }
         }
 
-        const [servicesResult, total] = await Promise.all([
-            prisma.service.findMany({
-                where: whereClause,
-                include: {
-                    category: true
-                },
-                skip: (page - 1) * limit,
-                take: limit,
-                orderBy: [{category: {name: 'asc'}}, {name: 'asc'}]
-            }),
-            prisma.service.count({where: whereClause})
-        ])
+        const servicesResult = await prisma.service.findMany({
+            where: whereClause,
+            include: {
+                category: true
+            },
+            skip: (page - 1) * limit,
+            take: limit,
+            orderBy: [{category: {name: 'asc'}}, {name: 'asc'}]
+        }) as ServiceWithCategoryRelation[]
+        
+        const total = await prisma.service.count({where: whereClause})
 
         return {
             services: servicesResult.map(service => ({
                 id: service.id,
                 name: service.name,
-                categoryName: (service as any).category.name,
+                categoryName: service.category.name,
                 device: service.device,
                 price: Number(service.price),
                 estimatedTime: service.estimatedTime,
@@ -344,7 +364,7 @@ export class ServiceService {
             ? {}
             : {isActive: true}
 
-        return await prisma.serviceCategory.findMany({
+        const categories = await prisma.serviceCategory.findMany({
             where: whereClause,
             include: {
                 services: {
@@ -360,6 +380,15 @@ export class ServiceService {
             },
             orderBy: {name: 'asc'}
         })
+
+        // Convert Decimal prices to numbers for client components
+        return categories.map(category => ({
+            ...category,
+            services: category.services.map(service => ({
+                ...service,
+                price: Number(service.price)
+            }))
+        }))
     }
 
     // Get all service categories for admin management (includes inactive)
@@ -384,7 +413,7 @@ export class ServiceService {
             ? {}
             : {isActive: true}
 
-        return await prisma.serviceCategory.findMany({
+        const categories = await prisma.serviceCategory.findMany({
             where: whereClause,
             include: {
                 services: includeInactive ? true : {
@@ -400,6 +429,15 @@ export class ServiceService {
             },
             orderBy: {name: 'asc'}
         })
+
+        // Convert Decimal prices to numbers for client components
+        return categories.map(category => ({
+            ...category,
+            services: category.services.map(service => ({
+                ...service,
+                price: Number(service.price)
+            }))
+        }))
     }
 
     // Create service category
@@ -580,31 +618,31 @@ export class ServiceService {
             totalServices,
             activeServices,
             inactiveServices,
-            totalCategories,
-            deviceStats,
-            categoryStats
+            totalCategories
         ] = await Promise.all([
             prisma.service.count(),
             prisma.service.count({where: {isActive: true}}),
             prisma.service.count({where: {isActive: false}}),
-            prisma.serviceCategory.count({where: {isActive: true}}),
-            prisma.service.groupBy({
-                by: ['device'],
-                where: {isActive: true},
-                _count: true
-            }),
-            prisma.service.groupBy({
-                by: ['categoryId'],
-                where: {isActive: true},
-                _count: true
-            })
+            prisma.serviceCategory.count({where: {isActive: true}})
         ])
+        
+        const deviceStats = await prisma.service.groupBy({
+            by: ['device'],
+            where: {isActive: true},
+            _count: true
+        }) as DeviceGroupByResult[]
+        
+        const categoryStats = await prisma.service.groupBy({
+            by: ['categoryId'],
+            where: {isActive: true},
+            _count: true
+        }) as CategoryGroupByResult[]
 
         // Get category names for category stats
         const categoryNames = await prisma.serviceCategory.findMany({
             where: {
                 id: {
-                    in: categoryStats.map((stat: any) => stat.categoryId)
+                    in: categoryStats.map(stat => stat.categoryId)
                 }
             },
             select: {id: true, name: true}
@@ -620,11 +658,11 @@ export class ServiceService {
             activeServices,
             inactiveServices,
             totalCategories,
-            servicesByDevice: deviceStats.map((stat: any) => ({
+            servicesByDevice: deviceStats.map(stat => ({
                 device: stat.device,
                 count: stat._count
             })),
-            servicesByCategory: categoryStats.map((stat: any) => ({
+            servicesByCategory: categoryStats.map(stat => ({
                 categoryName: categoryNameMap[stat.categoryId] || 'Unknown',
                 count: stat._count
             }))
