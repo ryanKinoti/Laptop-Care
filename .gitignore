@@ -42,7 +42,7 @@ next-env.d.ts
 
 #additional folders
 /.idea
-/.claude
+claude*
 /.idx
 /prisma/migrations
 *.txt

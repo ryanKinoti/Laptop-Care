@@ -7,7 +7,8 @@ import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Alert, AlertDescription} from '@/components/ui/alert'
-import {Loader2, Mail, Chrome} from 'lucide-react'
+import {Loader2, Mail} from 'lucide-react'
+import { FcGoogle } from 'react-icons/fc';
 import Link from 'next/link'
 import {Navigation} from '@/components/navigation'
 
@@ -125,7 +126,7 @@ function SignInContent() {
                             {isGoogleLoading ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                             ) : (
-                                <Chrome className="mr-2 h-4 w-4"/>
+                                <FcGoogle className="mr-2 h-4 w-4"/>
                             )}
                             Continue with Google
                         </Button>
@@ -162,9 +163,8 @@ function SignInContent() {
                             </div>
                             <Button
                                 type="submit"
-                                className="w-full"
-                                disabled={isLoading || isGoogleLoading || !email}
-                            >
+                                className="w-full text-white"
+                                disabled={isLoading || isGoogleLoading || !email}>
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
