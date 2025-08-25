@@ -35,7 +35,7 @@ export function AuthButtons() {
     }
 
     // Check if user is staff (admin/employee)
-    const isStaff = (session.user as any)?.isStaff || false
+    const isStaff = (session.user && 'isStaff' in session.user ? session.user.isStaff : false) || false
 
     return (
         <DropdownMenu>
