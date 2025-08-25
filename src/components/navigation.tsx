@@ -67,7 +67,7 @@ function NavigationContent() {
                         alt="Laptop Care Services"
                         width={100}
                         height={38}
-                        className="bg-white rounded-md"
+                        className="bg-white rounded-md w-auto h-auto"
                         priority
                     />
                     <span className="hidden font-bold sm:inline-block">

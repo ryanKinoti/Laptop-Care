@@ -1,17 +1,17 @@
 'use client'
 
-import React, { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Chrome } from 'lucide-react'
+import React, {useState, Suspense} from 'react'
+import {signIn} from 'next-auth/react'
+import {useSearchParams} from 'next/navigation'
+import {Button} from '@/components/ui/button'
+import {Input} from '@/components/ui/input'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Alert, AlertDescription} from '@/components/ui/alert'
+import {Loader2, Mail, Chrome} from 'lucide-react'
 import Link from 'next/link'
-import { Navigation } from '@/components/navigation'
+import {Navigation} from '@/components/navigation'
 
-export default function SignInPage() {
+function SignInContent() {
     const [email, setEmail] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isGoogleLoading, setIsGoogleLoading] = useState(false)
@@ -48,7 +48,7 @@ export default function SignInPage() {
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true)
-        await signIn('google', { callbackUrl })
+        await signIn('google', {callbackUrl})
     }
 
     const getErrorMessage = (error: string | null) => {
@@ -78,8 +78,8 @@ export default function SignInPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <Navigation />
-            
+            <Navigation/>
+
             <div className="flex flex-col items-center justify-center px-4 py-16">
                 {/* Page Header */}
                 <div className="w-full max-w-sm mb-8 text-center">
@@ -108,7 +108,7 @@ export default function SignInPage() {
                         {/* Success Message */}
                         {message && (
                             <Alert>
-                                <Mail className="h-4 w-4" />
+                                <Mail className="h-4 w-4"/>
                                 <AlertDescription>
                                     {message}
                                 </AlertDescription>
@@ -123,9 +123,9 @@ export default function SignInPage() {
                             onClick={handleGoogleSignIn}
                             disabled={isGoogleLoading || isLoading}>
                             {isGoogleLoading ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                             ) : (
-                                <Chrome className="mr-2 h-4 w-4" />
+                                <Chrome className="mr-2 h-4 w-4"/>
                             )}
                             Continue with Google
                         </Button>
@@ -133,7 +133,7 @@ export default function SignInPage() {
                         {/* Divider */}
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t" />
+                                <div className="w-full border-t"/>
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
                                 <span className="bg-background px-2 text-muted-foreground">
@@ -145,7 +145,8 @@ export default function SignInPage() {
                         {/* Magic Link Form */}
                         <form onSubmit={handleEmailSignIn} className="space-y-4">
                             <div className="space-y-2">
-                                <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                <label htmlFor="email"
+                                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                     Email
                                 </label>
                                 <Input
@@ -166,12 +167,12 @@ export default function SignInPage() {
                             >
                                 {isLoading ? (
                                     <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                                         Sending magic link...
                                     </>
                                 ) : (
                                     <>
-                                        <Mail className="mr-2 h-4 w-4" />
+                                        <Mail className="mr-2 h-4 w-4"/>
                                         Send magic link
                                     </>
                                 )}
@@ -193,5 +194,44 @@ export default function SignInPage() {
                 </Card>
             </div>
         </div>
+    )
+}
+
+function SignInFallback() {
+    return (
+        <div className="min-h-screen bg-background">
+            <Navigation />
+            
+            <div className="flex flex-col items-center justify-center px-4 py-16">
+                {/* Page Header */}
+                <div className="w-full max-w-sm mb-8 text-center">
+                    <h1 className="text-2xl font-bold">Welcome back</h1>
+                    <p className="text-muted-foreground mt-1">Sign in to your account</p>
+                </div>
+
+                {/* Loading Card */}
+                <Card className="w-full max-w-sm">
+                    <CardHeader className="space-y-1">
+                        <CardTitle className="text-xl text-center">Sign in</CardTitle>
+                        <CardDescription className="text-center">
+                            Loading...
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
+export default function SignInPage() {
+    return (
+        <Suspense fallback={<SignInFallback />}>
+            <SignInContent />
+        </Suspense>
     )
 }
