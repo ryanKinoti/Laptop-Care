@@ -1,6 +1,6 @@
-<p align="center" style="background-color: white; padding: 20px; border-radius: 8px;">
+<p align="center">
     <a href="https://laptopcare.co.ke" target="_blank">
-        <img src="public/main_logo.png" width="400" alt="laptop-care-logo">
+        <img src="public/main_logo.png" width="400" alt="laptop-care-logo" style="background-color: white; padding: 20px; border-radius: 8px;">
     </a>
 </p>
 
