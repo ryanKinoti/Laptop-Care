@@ -186,8 +186,8 @@ const getUserRoleLevel = (user: AuthUser | null): PermissionLevel => {
 // NextAuth session already provides id, name, email, image
 const extractUserFromSession = (session: Session | null): AuthUser | null => {
     if (!session?.user) return null
-    
-    const sessionUser = session.user as any
+
+    const sessionUser = session.user
     
     return {
         // Only extract our custom fields

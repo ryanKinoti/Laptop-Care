@@ -68,7 +68,11 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
                         }
 
                         // Update user fields with Google profile data if they're missing
-                        const updateData: any = {};
+                        const updateData: {
+                            name?: string;
+                            image?: string;
+                            emailVerified?: Date;
+                        } = {};
 
                         if (!existingUser.name && profile?.name) {
                             updateData.name = profile.name;
