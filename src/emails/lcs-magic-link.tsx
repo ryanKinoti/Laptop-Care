@@ -31,7 +31,7 @@ export const LCSMagicLinkEmail = ({
             <Container style={container}>
                 <Section style={logoContainer}>
                     <Img
-                        src={`${baseUrl}/lcs_main_logo.png`}
+                        src={`${baseUrl}/main_logo.png`}
                         width="200"
                         height="60"
                         alt="Laptop Care Services Logo"
