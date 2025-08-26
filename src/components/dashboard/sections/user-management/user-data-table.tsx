@@ -9,7 +9,7 @@ import {useAuthStore} from '@/stores/auth-store'
 import {useDashboardStore} from '@/stores/dashboard-store'
 import {Plus, Eye, Users} from 'lucide-react'
 import {CreateUserModal} from './create-user-modal'
-import {DataTableColumn, DataTableFilter, DataTableAction} from '@/types/data-table'
+import {DataTableFilter, DataTableAction} from '@/types/data-table'
 import {createTextColumn, createBadgeColumn, commonFilters, commonBadges} from '@/lib/data-table-utils'
 import {ColumnDef} from '@tanstack/react-table'
 

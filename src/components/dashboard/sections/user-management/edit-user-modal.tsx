@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -67,7 +67,16 @@ export function EditUserModal({ user, children, open, onOpenChange, onSuccess }:
                 throw new Error('Name is required')
             }
 
-            const updateData: any = {
+            const updateData: {
+                name?: string
+                phone?: string
+                isActive?: boolean
+                staffRole?: StaffRole
+                customerRole?: CustomerRole
+                companyName?: string
+                address?: string
+                notes?: string
+            } = {
                 name: formData.name.trim(),
                 phone: formData.phone.trim() || undefined,
             }

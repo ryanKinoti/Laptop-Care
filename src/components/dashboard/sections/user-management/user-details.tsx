@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { getUserWithProfileAction, updateUserAction, toggleUserStatusAction } from '@/lib/actions/user'
+import { getUserWithProfileAction, toggleUserStatusAction } from '@/lib/actions/user'
 import { UserWithProfile } from '@/lib/prisma/user'
 import { useAuthStore } from '@/stores/auth-store'
 import { useDashboardStore } from '@/stores/dashboard-store'
