@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import {prisma} from '../src/lib/prisma/prisma';
-import {seedUsers} from './seeders/user';
+import {seedUsers} from './seeders/users';
 import {seedServices} from './seeders/services';
 import inquirer from 'inquirer';
 

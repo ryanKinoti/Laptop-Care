@@ -1,67 +1,92 @@
 import {prisma} from '@/lib/prisma/prisma'
-import type {Service, ServiceCategory, Prisma} from '@prisma/client'
+import type {Prisma} from '@prisma/client'
+import {
+    // Select constants
+    SERVICE_CATEGORY_BASE_SELECT,
+    SERVICE_CATEGORY_WITH_SERVICES_SELECT,
+    SERVICE_CATEGORY_WITH_SERVICES_ADMIN_SELECT,
+    SERVICE_LIST_SELECT,
+    SERVICE_WITH_CATEGORY_SELECT,
+    // DTO types
+    type ServiceCategoryWithServicesDTO,
+    type ServiceCategoryWithServicesAdminDTO,
+    type ServiceListDTO,
+    type ServiceWithCategoryDTO,
+    // Client-safe types
+    type ServiceCategoryClientDTO,
+    type ServiceCategoryWithServicesClientDTO,
+    type ServiceCategoryWithServicesAdminClientDTO,
+    type ServiceListClientDTO,
+    type ServiceWithCategoryClientDTO,
+    // Input types
+    type CreateServiceCategoryInput,
+    type UpdateServiceCategoryInput,
+    type CreateServiceInput,
+    type UpdateServiceInput,
+    // Filter types
+    type ServiceFilters,
+    type ServiceStatsResult
+} from '@/types/service'
 import {DeviceType} from '@prisma/client'
 
-// Type for service with included category using Prisma's type utilities
-type ServiceWithCategoryRelation = Prisma.ServiceGetPayload<{
-    include: { category: true }
-}>
-
-// Types for groupBy results
-type DeviceGroupByResult = {
-    device: DeviceType
-    _count: number
-}
-
-type CategoryGroupByResult = {
-    categoryId: string
-    _count: number
-}
-
-export type ServiceWithCategory = Omit<Service, 'price'> & {
-    category: ServiceCategory
-    price: number
-}
-
-export type ServiceListItem = {
-    id: string
-    name: string
-    categoryName: string
-    device: DeviceType
-    price: number
-    estimatedTime: string
-    isActive: boolean
-}
-
-export type ServiceFilters = {
-    search?: string
-    categoryId?: string
-    deviceType?: DeviceType
-    isActive?: boolean
-    priceRange?: {
-        min?: number
-        max?: number
-    }
-}
-
-// Type for service with converted price for client components
-type ServiceForClient = Omit<Service, 'price'> & {
-    price: number
-}
-
-export type CategoryWithServices = ServiceCategory & {
-    services: ServiceForClient[]
-    _count: {
-        services: number
-    }
-}
+// Re-export types for backwards compatibility
+export type ServiceListItem = ServiceListClientDTO
+export type ServiceWithCategory = ServiceWithCategoryClientDTO
+export type CategoryWithServices = ServiceCategoryWithServicesClientDTO
+export type {ServiceFilters}
 
 export class ServiceService {
+    // =============================================================================
+    // PRIVATE HELPER METHODS - Decimal conversion
+    // =============================================================================
+
+    private static convertServiceToClient(service: ServiceListDTO): ServiceListClientDTO {
+        return {
+            ...service,
+            price: Number(service.price),
+            categoryName: service.category.name
+        }
+    }
+
+    private static convertServiceWithCategoryToClient(service: ServiceWithCategoryDTO): ServiceWithCategoryClientDTO {
+        return {
+            ...service,
+            price: Number(service.price),
+            category: service.category
+        }
+    }
+
+    private static convertServiceCategoryWithServicesToClient(category: ServiceCategoryWithServicesDTO): ServiceCategoryWithServicesClientDTO {
+        return {
+            ...category,
+            services: category.services.map((service: ServiceCategoryWithServicesDTO['services'][0]) => ({
+                ...service,
+                price: Number(service.price)
+            })),
+            _count: category._count
+        }
+    }
+
+    private static convertServiceCategoryWithServicesAdminToClient(category: ServiceCategoryWithServicesAdminDTO): ServiceCategoryWithServicesAdminClientDTO {
+        return {
+            ...category,
+            services: category.services.map((service: ServiceCategoryWithServicesDTO['services'][0]) => ({
+                ...service,
+                price: Number(service.price)
+            })),
+            _count: category._count
+        }
+    }
+
+    // =============================================================================
+    // SERVICE OPERATIONS
+    // =============================================================================
+
     static async getServiceList(
         filters: ServiceFilters = {},
         page: number = 1,
         limit: number = 20
-    ): Promise<{ services: ServiceListItem[], total: number }> {
+    ): Promise<{ services: ServiceListClientDTO[], total: number }> {
         // Build where clause
         const whereClause: Prisma.ServiceWhereInput = {}
 
@@ -95,63 +120,55 @@ export class ServiceService {
             }
         }
 
-        const servicesResult = await prisma.service.findMany({
-            where: whereClause,
-            include: {
-                category: true
-            },
-            skip: (page - 1) * limit,
-            take: limit,
-            orderBy: [{category: {name: 'asc'}}, {name: 'asc'}]
-        }) as ServiceWithCategoryRelation[]
-        
-        const total = await prisma.service.count({where: whereClause})
+        const [services, total] = await Promise.all([
+            prisma.service.findMany({
+                where: whereClause,
+                select: SERVICE_LIST_SELECT,
+                skip: (page - 1) * limit,
+                take: limit,
+                orderBy: [{category: {name: 'asc'}}, {name: 'asc'}],
+                cacheStrategy: {
+                    ttl: 300,  // 5 minutes for service lists
+                    swr: 600,  // serve stale for 10 minutes while revalidating
+                    tags: ['services', 'service_list']
+                }
+            }) as unknown as Promise<ServiceListDTO[]>,
+            prisma.service.count({
+                where: whereClause,
+                cacheStrategy: {
+                    ttl: 300,
+                    swr: 600,
+                    tags: ['services', 'service_count']
+                }
+            })
+        ])
 
         return {
-            services: servicesResult.map(service => ({
-                id: service.id,
-                name: service.name,
-                categoryName: service.category.name,
-                device: service.device,
-                price: Number(service.price),
-                estimatedTime: service.estimatedTime,
-                isActive: service.isActive
-            })),
+            services: services.map(service => this.convertServiceToClient(service)),
             total
         }
     }
 
-    // Get service with category details (PUBLIC ACCESS)
-    static async getServiceWithCategory(serviceId: string): Promise<ServiceWithCategory | null> {
+    static async getServiceWithCategory(serviceId: string): Promise<ServiceWithCategoryClientDTO | null> {
         const service = await prisma.service.findUnique({
             where: {id: serviceId},
-            include: {
-                category: true
+            select: SERVICE_WITH_CATEGORY_SELECT,
+            cacheStrategy: {
+                ttl: 600,  // 10 minutes for individual service
+                swr: 1800, // serve stale for 30 minutes
+                tags: ['services', `service_${serviceId}`]
             }
         })
-        
+
         if (!service) return null
-        
-        // Convert Decimal to number for client components
-        return {
-            ...service,
-            price: Number(service.price)
-        } as ServiceWithCategory
+
+        return this.convertServiceWithCategoryToClient(service)
     }
 
-    // Create a new service
     static async createService(
         requesterId: string,
-        serviceData: {
-            name: string
-            categoryId: string
-            description?: string
-            device: DeviceType
-            price: number
-            notes?: string
-            estimatedTime: string
-        }
-    ): Promise<ServiceWithCategory> {
+        serviceData: CreateServiceInput
+    ): Promise<ServiceWithCategoryClientDTO> {
         // Verify requester has admin permissions
         const requester = await prisma.user.findUnique({
             where: {id: requesterId},
@@ -188,42 +205,18 @@ export class ServiceService {
         }
 
         const service = await prisma.service.create({
-            data: {
-                name: serviceData.name,
-                categoryId: serviceData.categoryId,
-                description: serviceData.description,
-                device: serviceData.device,
-                price: serviceData.price,
-                notes: serviceData.notes,
-                estimatedTime: serviceData.estimatedTime
-            },
-            include: {
-                category: true
-            }
+            data: serviceData,
+            select: SERVICE_WITH_CATEGORY_SELECT
         })
 
-        // Convert Decimal to number for client components
-        return {
-            ...service,
-            price: Number(service.price)
-        } as ServiceWithCategory
+        return this.convertServiceWithCategoryToClient(service)
     }
 
-    // Update service
     static async updateService(
         requesterId: string,
         serviceId: string,
-        updateData: {
-            name?: string
-            categoryId?: string
-            description?: string
-            device?: DeviceType
-            price?: number
-            notes?: string
-            estimatedTime?: string
-            isActive?: boolean
-        }
-    ): Promise<ServiceWithCategory> {
+        updateData: UpdateServiceInput
+    ): Promise<ServiceWithCategoryClientDTO> {
         // Verify requester has admin permissions
         const requester = await prisma.user.findUnique({
             where: {id: requesterId},
@@ -277,19 +270,12 @@ export class ServiceService {
         const service = await prisma.service.update({
             where: {id: serviceId},
             data: updateData,
-            include: {
-                category: true
-            }
+            select: SERVICE_WITH_CATEGORY_SELECT
         })
 
-        // Convert Decimal to number for client components
-        return {
-            ...service,
-            price: Number(service.price)
-        } as ServiceWithCategory
+        return this.convertServiceWithCategoryToClient(service)
     }
 
-    // Delete service (soft delete by setting isActive to false)
     static async deleteService(
         requesterId: string,
         serviceId: string
@@ -322,11 +308,10 @@ export class ServiceService {
         })
     }
 
-    // Restore service (set isActive to true)
     static async restoreService(
         requesterId: string,
         serviceId: string
-    ): Promise<ServiceWithCategory> {
+    ): Promise<ServiceWithCategoryClientDTO> {
         // Verify requester has admin permissions
         const requester = await prisma.user.findUnique({
             where: {id: requesterId},
@@ -343,22 +328,19 @@ export class ServiceService {
         const service = await prisma.service.update({
             where: {id: serviceId},
             data: {isActive: true},
-            include: {
-                category: true
-            }
+            select: SERVICE_WITH_CATEGORY_SELECT
         })
 
-        // Convert Decimal to number for client components
-        return {
-            ...service,
-            price: Number(service.price)
-        } as ServiceWithCategory
+        return this.convertServiceWithCategoryToClient(service)
     }
 
-    // Get all service categories with service counts (PUBLIC ACCESS)
+    // =============================================================================
+    // SERVICE CATEGORY OPERATIONS
+    // =============================================================================
+
     static async getServiceCategories(
         includeInactive: boolean = false
-    ): Promise<CategoryWithServices[]> {
+    ): Promise<ServiceCategoryWithServicesClientDTO[]> {
         // No authentication required - public access (but only show active by default)
         const whereClause: Prisma.ServiceCategoryWhereInput = includeInactive
             ? {}
@@ -366,36 +348,22 @@ export class ServiceService {
 
         const categories = await prisma.serviceCategory.findMany({
             where: whereClause,
-            include: {
-                services: {
-                    where: {isActive: true}
-                },
-                _count: {
-                    select: {
-                        services: {
-                            where: {isActive: true}
-                        }
-                    }
-                }
-            },
-            orderBy: {name: 'asc'}
+            select: SERVICE_CATEGORY_WITH_SERVICES_SELECT,
+            orderBy: {name: 'asc'},
+            cacheStrategy: {
+                ttl: 1800,  // 30 minutes for categories (public access)
+                swr: 3600,  // serve stale for 1 hour
+                tags: ['service_categories', 'public_categories']
+            }
         })
 
-        // Convert Decimal prices to numbers for client components
-        return categories.map(category => ({
-            ...category,
-            services: category.services.map(service => ({
-                ...service,
-                price: Number(service.price)
-            }))
-        }))
+        return categories.map(category => this.convertServiceCategoryWithServicesToClient(category))
     }
 
-    // Get all service categories for admin management (includes inactive)
     static async getServiceCategoriesForAdmin(
         requesterId: string,
         includeInactive: boolean = false
-    ): Promise<CategoryWithServices[]> {
+    ): Promise<ServiceCategoryWithServicesAdminClientDTO[]> {
         // Verify requester has admin permissions
         const requester = await prisma.user.findUnique({
             where: {id: requesterId},
@@ -415,39 +383,22 @@ export class ServiceService {
 
         const categories = await prisma.serviceCategory.findMany({
             where: whereClause,
-            include: {
-                services: includeInactive ? true : {
-                    where: {isActive: true}
-                },
-                _count: {
-                    select: {
-                        services: includeInactive ? true : {
-                            where: {isActive: true}
-                        }
-                    }
-                }
-            },
-            orderBy: {name: 'asc'}
+            select: SERVICE_CATEGORY_WITH_SERVICES_ADMIN_SELECT,
+            orderBy: {name: 'asc'},
+            cacheStrategy: {
+                ttl: 600,   // 10 minutes for admin categories
+                swr: 1200,  // serve stale for 20 minutes
+                tags: ['service_categories', 'admin_categories']
+            }
         })
 
-        // Convert Decimal prices to numbers for client components
-        return categories.map(category => ({
-            ...category,
-            services: category.services.map(service => ({
-                ...service,
-                price: Number(service.price)
-            }))
-        }))
+        return categories.map(category => this.convertServiceCategoryWithServicesAdminToClient(category))
     }
 
-    // Create service category
     static async createServiceCategory(
         requesterId: string,
-        categoryData: {
-            name: string
-            description?: string
-        }
-    ): Promise<ServiceCategory> {
+        categoryData: CreateServiceCategoryInput
+    ): Promise<ServiceCategoryClientDTO> {
         // Verify requester has admin permissions
         const requester = await prisma.user.findUnique({
             where: {id: requesterId},
@@ -471,20 +422,16 @@ export class ServiceService {
         }
 
         return await prisma.serviceCategory.create({
-            data: categoryData
+            data: categoryData,
+            select: SERVICE_CATEGORY_BASE_SELECT
         })
     }
 
-    // Update service category
     static async updateServiceCategory(
         requesterId: string,
         categoryId: string,
-        updateData: {
-            name?: string
-            description?: string
-            isActive?: boolean
-        }
-    ): Promise<ServiceCategory> {
+        updateData: UpdateServiceCategoryInput
+    ): Promise<ServiceCategoryClientDTO> {
         // Verify requester has admin permissions
         const requester = await prisma.user.findUnique({
             where: {id: requesterId},
@@ -520,11 +467,11 @@ export class ServiceService {
 
         return await prisma.serviceCategory.update({
             where: {id: categoryId},
-            data: updateData
+            data: updateData,
+            select: SERVICE_CATEGORY_BASE_SELECT
         })
     }
 
-    // Delete service category (only if no active services)
     static async deleteServiceCategory(
         requesterId: string,
         categoryId: string
@@ -560,11 +507,14 @@ export class ServiceService {
         })
     }
 
-    // Get services by device type (for customer-facing operations)
+    // =============================================================================
+    // UTILITY METHODS
+    // =============================================================================
+
     static async getServicesByDevice(
         deviceType: DeviceType,
         categoryId?: string
-    ): Promise<ServiceWithCategory[]> {
+    ): Promise<ServiceWithCategoryClientDTO[]> {
         const whereClause: Prisma.ServiceWhereInput = {
             device: deviceType,
             isActive: true,
@@ -579,28 +529,19 @@ export class ServiceService {
 
         const services = await prisma.service.findMany({
             where: whereClause,
-            include: {
-                category: true
-            },
-            orderBy: [{category: {name: 'asc'}}, {name: 'asc'}]
-        })
+            select: SERVICE_WITH_CATEGORY_SELECT,
+            orderBy: [{category: {name: 'asc'}}, {name: 'asc'}],
+            cacheStrategy: {
+                ttl: 900,   // 15 minutes for device-specific services
+                swr: 1800,  // serve stale for 30 minutes
+                tags: ['services', `device_${deviceType}`, categoryId ? `category_${categoryId}` : 'all_categories']
+            }
+        }) as unknown as ServiceWithCategoryDTO[]
 
-        // Convert Decimal to number for client components
-        return services.map(service => ({
-            ...service,
-            price: Number(service.price)
-        })) as ServiceWithCategory[]
+        return services.map(service => this.convertServiceWithCategoryToClient(service))
     }
 
-    // Get service statistics
-    static async getServiceStats(requesterId: string): Promise<{
-        totalServices: number
-        activeServices: number
-        inactiveServices: number
-        totalCategories: number
-        servicesByDevice: { device: DeviceType, count: number }[]
-        servicesByCategory: { categoryName: string, count: number }[]
-    }> {
+    static async getServiceStats(requesterId: string): Promise<ServiceStatsResult> {
         // Verify requester has admin permissions
         const requester = await prisma.user.findUnique({
             where: {id: requesterId},
@@ -620,32 +561,74 @@ export class ServiceService {
             inactiveServices,
             totalCategories
         ] = await Promise.all([
-            prisma.service.count(),
-            prisma.service.count({where: {isActive: true}}),
-            prisma.service.count({where: {isActive: false}}),
-            prisma.serviceCategory.count({where: {isActive: true}})
+            prisma.service.count({
+                cacheStrategy: {
+                    ttl: 600,  // 10 minutes for stats
+                    swr: 1200, // serve stale for 20 minutes
+                    tags: ['service_stats', 'total_services']
+                }
+            }),
+            prisma.service.count({
+                where: {isActive: true},
+                cacheStrategy: {
+                    ttl: 600,
+                    swr: 1200,
+                    tags: ['service_stats', 'active_services']
+                }
+            }),
+            prisma.service.count({
+                where: {isActive: false},
+                cacheStrategy: {
+                    ttl: 600,
+                    swr: 1200,
+                    tags: ['service_stats', 'inactive_services']
+                }
+            }),
+            prisma.serviceCategory.count({
+                where: {isActive: true},
+                cacheStrategy: {
+                    ttl: 600,
+                    swr: 1200,
+                    tags: ['service_stats', 'total_categories']
+                }
+            })
         ])
-        
+
         const deviceStats = await prisma.service.groupBy({
             by: ['device'],
             where: {isActive: true},
-            _count: true
-        }) as DeviceGroupByResult[]
-        
+            _count: {_all: true},
+            cacheStrategy: {
+                ttl: 900,   // 15 minutes for device stats
+                swr: 1800,  // serve stale for 30 minutes
+                tags: ['service_stats', 'device_stats']
+            }
+        }) as unknown as Array<{ device: DeviceType; _count: { _all: number } }>
+
         const categoryStats = await prisma.service.groupBy({
             by: ['categoryId'],
             where: {isActive: true},
-            _count: true
-        }) as CategoryGroupByResult[]
+            _count: {_all: true},
+            cacheStrategy: {
+                ttl: 900,   // 15 minutes for category stats
+                swr: 1800,  // serve stale for 30 minutes
+                tags: ['service_stats', 'category_stats']
+            }
+        }) as unknown as Array<{ categoryId: string; _count: { _all: number } }>
 
         // Get category names for category stats
         const categoryNames = await prisma.serviceCategory.findMany({
             where: {
                 id: {
-                    in: categoryStats.map(stat => stat.categoryId)
+                    in: categoryStats.map((stat) => stat.categoryId)
                 }
             },
-            select: {id: true, name: true}
+            select: {id: true, name: true},
+            cacheStrategy: {
+                ttl: 1800,  // 30 minutes for category names
+                swr: 3600,  // serve stale for 1 hour
+                tags: ['service_categories', 'category_names']
+            }
         })
 
         const categoryNameMap = categoryNames.reduce((acc, cat) => {
@@ -658,13 +641,13 @@ export class ServiceService {
             activeServices,
             inactiveServices,
             totalCategories,
-            servicesByDevice: deviceStats.map(stat => ({
+            servicesByDevice: deviceStats.map((stat) => ({
                 device: stat.device,
-                count: stat._count
+                count: stat._count._all
             })),
-            servicesByCategory: categoryStats.map(stat => ({
+            servicesByCategory: categoryStats.map((stat) => ({
                 categoryName: categoryNameMap[stat.categoryId] || 'Unknown',
-                count: stat._count
+                count: stat._count._all
             }))
         }
     }

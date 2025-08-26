@@ -1,30 +1,22 @@
 'use server'
 
-import {auth} from '@/lib/auth'
-import {
-    ServiceService,
-    type ServiceWithCategory,
-    type ServiceListItem,
-    type ServiceFilters,
-    type CategoryWithServices
-} from '@/lib/prisma/service'
-import {redirect} from 'next/navigation'
+import {getAuthenticatedUser} from '@/lib/auth'
+import {ServiceService} from '@/lib/prisma/service'
+import type {
+    ServiceFilters,
+    ServiceWithCategoryClientDTO,
+    ServiceListClientDTO,
+    ServiceCategoryWithServicesClientDTO,
+    ServiceCategoryClientDTO,
+    ServiceStatsResult,
+    CreateServiceInput,
+    UpdateServiceInput,
+    CreateServiceCategoryInput,
+    UpdateServiceCategoryInput
+} from '@/types/service'
 import {revalidatePath} from 'next/cache'
-import {DeviceType, type ServiceCategory} from '@prisma/client'
-
-export type ActionResult<T = unknown> = {
-    success: boolean
-    data?: T
-    error?: string
-}
-
-async function getAuthenticatedUser(): Promise<string> {
-    const session = await auth()
-    if (!session?.user?.id) {
-        redirect('/auth/signin')
-    }
-    return session.user.id
-}
+import {DeviceType} from '@prisma/client'
+import {ActionResult} from "@/types/common";
 
 // Service Management Actions
 
@@ -32,7 +24,7 @@ export async function getServiceListAction(
     filters: ServiceFilters = {},
     page: number = 1,
     limit: number = 20
-): Promise<ActionResult<{ services: ServiceListItem[], total: number }>> {
+): Promise<ActionResult<{ services: ServiceListClientDTO[], total: number }>> {
     try {
         const result = await ServiceService.getServiceList(filters, page, limit)
 
@@ -51,7 +43,7 @@ export async function getServiceListAction(
 
 export async function getServiceWithCategoryAction(
     serviceId: string
-): Promise<ActionResult<ServiceWithCategory>> {
+): Promise<ActionResult<ServiceWithCategoryClientDTO>> {
     try {
         const service = await ServiceService.getServiceWithCategory(serviceId)
 
@@ -75,15 +67,7 @@ export async function getServiceWithCategoryAction(
     }
 }
 
-export async function createServiceAction(serviceData: {
-    name: string
-    categoryId: string
-    description?: string
-    device: DeviceType
-    price: number
-    notes?: string
-    estimatedTime: string
-}): Promise<ActionResult<ServiceWithCategory>> {
+export async function createServiceAction(serviceData: CreateServiceInput): Promise<ActionResult<ServiceWithCategoryClientDTO>> {
     try {
         const requesterId = await getAuthenticatedUser()
         const service = await ServiceService.createService(requesterId, serviceData)
@@ -106,17 +90,8 @@ export async function createServiceAction(serviceData: {
 
 export async function updateServiceAction(
     serviceId: string,
-    updateData: {
-        name?: string
-        categoryId?: string
-        description?: string
-        device?: DeviceType
-        price?: number
-        notes?: string
-        estimatedTime?: string
-        isActive?: boolean
-    }
-): Promise<ActionResult<ServiceWithCategory>> {
+    updateData: UpdateServiceInput
+): Promise<ActionResult<ServiceWithCategoryClientDTO>> {
     try {
         const requesterId = await getAuthenticatedUser()
         const service = await ServiceService.updateService(requesterId, serviceId, updateData)
@@ -162,7 +137,7 @@ export async function deleteServiceAction(
 
 export async function restoreServiceAction(
     serviceId: string
-): Promise<ActionResult<ServiceWithCategory>> {
+): Promise<ActionResult<ServiceWithCategoryClientDTO>> {
     try {
         const requesterId = await getAuthenticatedUser()
         const service = await ServiceService.restoreService(requesterId, serviceId)
@@ -187,7 +162,7 @@ export async function restoreServiceAction(
 
 export async function getServiceCategoriesAction(
     includeInactive: boolean = false
-): Promise<ActionResult<CategoryWithServices[]>> {
+): Promise<ActionResult<ServiceCategoryWithServicesClientDTO[]>> {
     try {
         // No authentication required - public access
         const categories = await ServiceService.getServiceCategories(includeInactive)
@@ -207,7 +182,7 @@ export async function getServiceCategoriesAction(
 
 export async function getServiceCategoriesForAdminAction(
     includeInactive: boolean = false
-): Promise<ActionResult<CategoryWithServices[]>> {
+): Promise<ActionResult<ServiceCategoryWithServicesClientDTO[]>> {
     try {
         const requesterId = await getAuthenticatedUser()
         const categories = await ServiceService.getServiceCategoriesForAdmin(requesterId, includeInactive)
@@ -225,10 +200,7 @@ export async function getServiceCategoriesForAdminAction(
     }
 }
 
-export async function createServiceCategoryAction(categoryData: {
-    name: string
-    description?: string
-}): Promise<ActionResult<ServiceCategory>> {
+export async function createServiceCategoryAction(categoryData: CreateServiceCategoryInput): Promise<ActionResult<ServiceCategoryClientDTO>> {
     try {
         const requesterId = await getAuthenticatedUser()
         const category = await ServiceService.createServiceCategory(requesterId, categoryData)
@@ -251,12 +223,8 @@ export async function createServiceCategoryAction(categoryData: {
 
 export async function updateServiceCategoryAction(
     categoryId: string,
-    updateData: {
-        name?: string
-        description?: string
-        isActive?: boolean
-    }
-): Promise<ActionResult<ServiceCategory>> {
+    updateData: UpdateServiceCategoryInput
+): Promise<ActionResult<ServiceCategoryClientDTO>> {
     try {
         const requesterId = await getAuthenticatedUser()
         const category = await ServiceService.updateServiceCategory(requesterId, categoryId, updateData)
@@ -304,7 +272,7 @@ export async function deleteServiceCategoryAction(
 export async function getServicesByDeviceAction(
     deviceType: DeviceType,
     categoryId?: string
-): Promise<ActionResult<ServiceWithCategory[]>> {
+): Promise<ActionResult<ServiceWithCategoryClientDTO[]>> {
     try {
         const services = await ServiceService.getServicesByDevice(deviceType, categoryId)
 
@@ -323,14 +291,7 @@ export async function getServicesByDeviceAction(
 
 // Administrative Actions
 
-export async function getServiceStatsAction(): Promise<ActionResult<{
-    totalServices: number
-    activeServices: number
-    inactiveServices: number
-    totalCategories: number
-    servicesByDevice: { device: DeviceType, count: number }[]
-    servicesByCategory: { categoryName: string, count: number }[]
-}>> {
+export async function getServiceStatsAction(): Promise<ActionResult<ServiceStatsResult>> {
     try {
         const requesterId = await getAuthenticatedUser()
         const stats = await ServiceService.getServiceStats(requesterId)
@@ -394,7 +355,7 @@ export async function duplicateServiceAction(
         device?: DeviceType
         categoryId?: string
     }
-): Promise<ActionResult<ServiceWithCategory>> {
+): Promise<ActionResult<ServiceWithCategoryClientDTO>> {
     try {
         const requesterId = await getAuthenticatedUser()
 

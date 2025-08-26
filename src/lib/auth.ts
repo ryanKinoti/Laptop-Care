@@ -5,6 +5,7 @@ import {PrismaAdapter} from "@auth/prisma-adapter";
 import {prisma} from "@/lib/prisma/prisma"
 import {CustomerRole} from "@prisma/client";
 import {renderMagicLinkEmail} from "@/lib/email";
+import {redirect} from "next/navigation";
 
 export const {auth, handlers, signIn, signOut} = NextAuth({
     adapter: PrismaAdapter(prisma),
@@ -20,8 +21,8 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
                 },
             },
             from: process.env.EMAIL_FROM,
-            async sendVerificationRequest({ identifier: to, url, provider }) {
-                const { html, text } = await renderMagicLinkEmail({
+            async sendVerificationRequest({identifier: to, url, provider}) {
+                const {html, text} = await renderMagicLinkEmail({
                     to,
                     url,
                     host: process.env.NEXTAUTH_URL || 'localhost:3000',
@@ -29,7 +30,7 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
 
                 const nodemailer = await import('nodemailer');
                 const transporter = nodemailer.createTransport(provider.server);
-                
+
                 await transporter.sendMail({
                     to,
                     from: provider.from,
@@ -42,8 +43,8 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
     ],
     pages: {
         signIn: '/auth/signin',
-        error: '/auth/signin', // Redirect errors to a custom sign-in page
-        verifyRequest: '/auth/verify-request', // Custom verify request page
+        error: '/auth/signin',
+        verifyRequest: '/auth/verify-request',
     },
     session: {
         strategy: "database",
@@ -53,7 +54,6 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
         async signIn({user, account, profile}) {
             if (account?.provider === "google" && user.email) {
                 try {
-                    // Check if the user with this email already exists
                     const existingUser = await prisma.user.findUnique({
                         where: {email: user.email},
                         include: {
@@ -64,7 +64,7 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
                     });
 
                     if (existingUser) {
-                        // Check if Google account is already linked
+                        // Check if a Google account is already linked
                         const existingGoogleAccount = existingUser.accounts.find(
                             acc => acc.provider === "google" && acc.providerAccountId === account.providerAccountId
                         );
@@ -105,7 +105,7 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
                             updateData.emailVerified = new Date();
                         }
 
-                        // Update user if there are fields to update
+                        // Update the user if there are fields to update
                         if (Object.keys(updateData).length > 0) {
                             await prisma.user.update({
                                 where: {id: existingUser.id},
@@ -131,6 +131,7 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
             // For email provider or other cases, allow sign in
             return true;
         },
+
         async session({session, user}) {
             if (session.user && user) {
                 // Fetch complete user data with profiles
@@ -207,3 +208,11 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
         },
     }
 })
+
+export async function getAuthenticatedUser(): Promise<string> {
+    const session = await auth()
+    if (!session?.user?.id) {
+        redirect('/auth/signin')
+    }
+    return session.user.id
+}

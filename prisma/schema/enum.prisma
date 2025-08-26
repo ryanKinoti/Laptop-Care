@@ -47,3 +47,18 @@ enum DevicePartStatus {
 
   @@map("device_part_status")
 }
+
+enum MovementType {
+  REPAIR
+  SALES
+
+  @@map("movement_type")
+}
+
+enum SaleStatus {
+  AVAILABLE
+  SOLD
+  RESERVED
+
+  @@map("sale_status")
+}

@@ -98,9 +98,21 @@ export class UserService {
                 },
                 skip: (page - 1) * limit,
                 take: limit,
-                orderBy: {createdAt: 'desc'}
+                orderBy: {createdAt: 'desc'},
+                cacheStrategy: {
+                    ttl: 180,   // 3 minutes for user lists
+                    swr: 360,   // serve stale for 6 minutes
+                    tags: ['users', 'user_list']
+                }
             }),
-            prisma.user.count({where: whereClause})
+            prisma.user.count({
+                where: whereClause,
+                cacheStrategy: {
+                    ttl: 180,
+                    swr: 360,
+                    tags: ['users', 'user_count']
+                }
+            })
         ])
 
         return {
@@ -120,6 +132,11 @@ export class UserService {
             include: {
                 customerProfile: true,
                 staffProfile: true
+            },
+            cacheStrategy: {
+                ttl: 300,   // 5 minutes for user profiles
+                swr: 600,   // serve stale for 10 minutes
+                tags: ['users', `user_${userId}`, 'user_profiles']
             }
         })
     }
@@ -394,11 +411,45 @@ export class UserService {
         }
 
         const [total, active, staff, customers, blocked] = await Promise.all([
-            prisma.user.count(),
-            prisma.user.count({where: {isActive: true}}),
-            prisma.user.count({where: {isStaff: true}}),
-            prisma.user.count({where: {isStaff: false}}),
-            prisma.user.count({where: {blocked: true}})
+            prisma.user.count({
+                cacheStrategy: {
+                    ttl: 600,   // 10 minutes for user stats
+                    swr: 1200,  // serve stale for 20 minutes
+                    tags: ['user_stats', 'total_users']
+                }
+            }),
+            prisma.user.count({
+                where: {isActive: true},
+                cacheStrategy: {
+                    ttl: 600,
+                    swr: 1200,
+                    tags: ['user_stats', 'active_users']
+                }
+            }),
+            prisma.user.count({
+                where: {isStaff: true},
+                cacheStrategy: {
+                    ttl: 600,
+                    swr: 1200,
+                    tags: ['user_stats', 'staff_users']
+                }
+            }),
+            prisma.user.count({
+                where: {isStaff: false},
+                cacheStrategy: {
+                    ttl: 600,
+                    swr: 1200,
+                    tags: ['user_stats', 'customer_users']
+                }
+            }),
+            prisma.user.count({
+                where: {blocked: true},
+                cacheStrategy: {
+                    ttl: 600,
+                    swr: 1200,
+                    tags: ['user_stats', 'blocked_users']
+                }
+            })
         ])
 
         return {

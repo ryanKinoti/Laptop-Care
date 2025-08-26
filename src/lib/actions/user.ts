@@ -1,24 +1,10 @@
 'use server'
 
-import {auth} from '@/lib/auth'
+import {getAuthenticatedUser} from '@/lib/auth'
 import {UserService, type UserWithProfile, type UserListItem, type UserFilters} from '@/lib/prisma/user'
-import {redirect} from 'next/navigation'
 import {revalidatePath} from 'next/cache'
 import {StaffRole, CustomerRole, type Prisma} from '@prisma/client'
-
-export type ActionResult<T = unknown> = {
-    success: boolean
-    data?: T
-    error?: string
-}
-
-async function getAuthenticatedUser(): Promise<string> {
-    const session = await auth()
-    if (!session?.user?.id) {
-        redirect('/auth/signin')
-    }
-    return session.user.id
-}
+import {ActionResult} from "@/types/common";
 
 export async function getUserListAction(
     filters: UserFilters = {},

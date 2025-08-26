@@ -53,7 +53,8 @@ export function ServicesPageContent() {
     useEffect(() => {
         loadCategories()
         loadServices(1)
-    }, [loadCategories, loadServices]) // Empty dependency array - only run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []) // Empty dependency array - only run once on mount. Zustand actions are stable.
 
     // Event handlers
     const handleRequestService = (serviceId: string) => {

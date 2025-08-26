@@ -1,0 +1,79 @@
+model Device {
+  id         String  @id @default(cuid())
+  customerId String? @unique
+
+  deviceType     DeviceType
+  brand          String
+  model          String?
+  serialNumber   String              @unique
+  warrantyMonths Int?                @default(0)
+  price          Decimal?            @db.Decimal(10, 2)
+  repairStatus   DeviceRepairStatus?
+  saleStatus     SaleStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relationships
+  customer      User?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  parts         DevicePart[]
+  repairHistory RepairHistory[]
+
+  @@map("devices")
+}
+
+model DevicePart {
+  id               String  @id @default(cuid())
+  customerDeviceId String? @map("customer_device")
+
+  name           String
+  model          String
+  serialNumber   String            @unique
+  price          Decimal?          @db.Decimal(10, 2)
+  quantity       Int?              @default(1)
+  status         DevicePartStatus?
+  warrantyMonths Int?              @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relationships
+  customerDevice Device?         @relation(fields: [customerDeviceId], references: [id], onDelete: SetNull)
+  movements      PartMovement[]
+  repairHistory  RepairHistory[] @relation("RepairedParts")
+
+  @@map("device_parts")
+}
+
+model PartMovement {
+  id           String       @id @default(cuid())
+  partId       String
+  quantity     Int
+  movementType MovementType
+  notes        String?
+
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  // relationships
+  part      DevicePart @relation(fields: [partId], references: [id], onDelete: SetNull)
+  createdBy User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("part_movements")
+}
+
+model RepairHistory {
+  id           String   @id @default(cuid())
+  deviceId     String
+  bookingId    String?
+  technicianId String?
+  diagnosis    String
+  repairDate   DateTime @default(now())
+
+  // relationships
+  device     Device        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  technician StaffProfile? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  partsUsed  DevicePart[]  @relation("RepairedParts")
+
+  @@map("device_repair_histories")
+}
