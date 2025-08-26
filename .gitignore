@@ -47,3 +47,4 @@ claude*
 /prisma/migrations
 *.txt
 /src/generated/prisma
+/react-email-starter

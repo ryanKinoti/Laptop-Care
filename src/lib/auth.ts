@@ -4,6 +4,7 @@ import Nodemailer from "next-auth/providers/nodemailer";
 import {PrismaAdapter} from "@auth/prisma-adapter";
 import {prisma} from "@/lib/prisma/prisma"
 import {CustomerRole} from "@prisma/client";
+import {renderMagicLinkEmail} from "@/lib/email";
 
 export const {auth, handlers, signIn, signOut} = NextAuth({
     adapter: PrismaAdapter(prisma),
@@ -19,6 +20,24 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
                 },
             },
             from: process.env.EMAIL_FROM,
+            async sendVerificationRequest({ identifier: to, url, provider }) {
+                const { html, text } = await renderMagicLinkEmail({
+                    to,
+                    url,
+                    host: process.env.NEXTAUTH_URL || 'localhost:3000',
+                });
+
+                const nodemailer = await import('nodemailer');
+                const transporter = nodemailer.createTransport(provider.server);
+                
+                await transporter.sendMail({
+                    to,
+                    from: provider.from,
+                    subject: 'Sign in to Laptop Care Services',
+                    text,
+                    html,
+                });
+            },
         }),
     ],
     pages: {

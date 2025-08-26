@@ -20,6 +20,8 @@
     "@radix-ui/react-navigation-menu": "^1.2.14",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
+    "@react-email/components": "^0.5.1",
+    "@react-email/render": "^1.2.1",
     "@tanstack/react-table": "^8.21.3",
     "@types/inquirer": "^9.0.9",
     "@vercel/speed-insights": "^1.2.0",
