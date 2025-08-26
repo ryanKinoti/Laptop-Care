@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {User, Settings, LogOut, Shield, BarChart3, Users, Wrench} from "lucide-react"
+import {User, LogOut, BarChart3} from "lucide-react"
 import {useAuthStore, useAuthSync} from '@/stores/auth-store'
 import Link from "next/link"
 
@@ -22,7 +22,6 @@ export function AuthButtons() {
     const user = useAuthStore(state => state.user) // Our custom role data
     const currentRole = useAuthStore(state => state.currentRole)
     const canAccess = useAuthStore(state => state.canAccess)
-    const isCustomer = useAuthStore(state => state.isCustomer)
 
     if (status === "loading" || !isInitialized) {
         return (
@@ -79,60 +78,13 @@ export function AuthButtons() {
             </DropdownMenuItem>
         )
 
-        // Customer-specific: Order tracking
-        if (isCustomer() && canAccess('customerOrders')) {
+        // Staff roles: Dashboard access (all staff roles get dashboard)
+        if (user.isStaff && canAccess('dashboard')) {
             items.push(
-                <DropdownMenuItem key="orders" asChild>
-                    <Link href="/orders">
-                        <Settings className="mr-2 h-4 w-4"/>
-                        <span>My Orders</span>
-                    </Link>
-                </DropdownMenuItem>
-            )
-        }
-
-        // Staff-specific: Dashboard access
-        if (canAccess('staffTools')) {
-            items.push(
-                <DropdownMenuItem key="staff-dashboard" asChild>
-                    <Link href="/staff">
-                        <Wrench className="mr-2 h-4 w-4"/>
-                        <span>Staff Dashboard</span>
-                    </Link>
-                </DropdownMenuItem>
-            )
-        }
-
-        // Admin-specific: Admin Panel
-        if (canAccess('adminPanel')) {
-            items.push(
-                <DropdownMenuItem key="admin-panel" asChild>
-                    <Link href="/admin">
-                        <Shield className="mr-2 h-4 w-4"/>
-                        <span>Admin Panel</span>
-                    </Link>
-                </DropdownMenuItem>
-            )
-        }
-
-        // Optional: Direct links for common admin tasks
-        if (canAccess('userManagement')) {
-            items.push(
-                <DropdownMenuItem key="user-management" asChild>
-                    <Link href="/admin/users">
-                        <Users className="mr-2 h-4 w-4"/>
-                        <span>Manage Users</span>
-                    </Link>
-                </DropdownMenuItem>
-            )
-        }
-
-        if (canAccess('reporting')) {
-            items.push(
-                <DropdownMenuItem key="reports" asChild>
-                    <Link href="/admin/reports">
+                <DropdownMenuItem key="dashboard" asChild>
+                    <Link href="/dashboard">
                         <BarChart3 className="mr-2 h-4 w-4"/>
-                        <span>Reports</span>
+                        <span>Dashboard</span>
                     </Link>
                 </DropdownMenuItem>
             )

@@ -31,7 +31,22 @@ export default auth((req) => {
         return NextResponse.next();
     }
 
-    // Redirect unauthenticated users to sign-in page
+    // Handle dashboard routes - require authentication and staff access
+    if (path.startsWith('/dashboard')) {
+        if (!isLoggedIn) {
+            const signInUrl = new URL('/auth/signin', nextUrl);
+            signInUrl.searchParams.set('callbackUrl', nextUrl.href);
+            return NextResponse.redirect(signInUrl);
+        }
+        
+        // Check if a user is staff
+        if (!req.auth?.user?.isStaff) {
+            // Redirect non-staff users to home
+            return NextResponse.redirect(new URL('/', nextUrl));
+        }
+    }
+
+    // Redirect unauthenticated users to sign-in page for other protected routes
     if (!isLoggedIn) {
         return NextResponse.redirect(new URL("/api/auth/signin", nextUrl));
     }
@@ -41,10 +56,8 @@ export default auth((req) => {
 // Configure which paths the middleware should run on
 export const config = {
     matcher: [
-        // Temporarily disable middleware - no routes protected
-        // "/protected/:path*",  // Uncomment when you want to protect specific routes
-        // "/dashboard/:path*",  // Protect dashboard routes
-        // "/admin/:path*",      // Protect admin routes
-        // "/profile/:path*",    // Protect profile routes
+        "/dashboard/:path*",  // Protect dashboard routes
+        // "/admin/:path*",      // Protect admin routes (when implemented)
+        // "/profile/:path*",    // Protect profile routes (when implemented)
     ],
 };

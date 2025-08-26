@@ -119,7 +119,7 @@ function SignInContent() {
                         {/* Google Sign In */}
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="secondary"
                             className="w-full"
                             onClick={handleGoogleSignIn}
                             disabled={isGoogleLoading || isLoading}>

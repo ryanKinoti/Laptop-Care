@@ -48,3 +48,4 @@ claude*
 *.txt
 /src/generated/prisma
 /react-email-starter
+/dev_docs

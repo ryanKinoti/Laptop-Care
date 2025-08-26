@@ -17,7 +17,7 @@ import {useNavigationStore} from "@/stores/navigation-store"
 import {Moon, Sun, Package, Menu, X} from "lucide-react"
 import {SessionProvider} from "next-auth/react"
 
-function ThemeToggle() {
+export function ThemeToggle() {
     const {theme, setTheme} = useTheme()
     const [mounted, setMounted] = useState(false)
 

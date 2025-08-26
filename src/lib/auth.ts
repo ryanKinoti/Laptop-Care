@@ -160,6 +160,35 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
             }
             return session
         },
+
+        async redirect({url, baseUrl}) {
+            // If there's a callbackUrl, use it
+            const callbackUrl = new URLSearchParams(new URL(url).search).get('callbackUrl')
+            if (callbackUrl) {
+                // Make sure callbackUrl is from the same origin
+                try {
+                    const callbackURL = new URL(callbackUrl, baseUrl)
+                    if (callbackURL.origin === new URL(baseUrl).origin) {
+                        return callbackURL.toString()
+                    }
+                } catch (error) {
+                    // Invalid URL, fall through to default redirect
+                }
+            }
+
+            // If redirecting after successful signin, determine where to go based on user role
+            if (url === baseUrl || url.startsWith(baseUrl + '/auth/signin')) {
+                // This will be handled by the sign-in page component to check user role
+                // For now, just go to home and let the client-side handle the redirect
+                return baseUrl
+            }
+
+            // For all other cases, allow the redirect if it's same origin
+            if (url.startsWith('/')) return `${baseUrl}${url}`
+            if (new URL(url).origin === baseUrl) return url
+            
+            return baseUrl
+        },
     },
     events: {
         createUser: async ({user}) => {
