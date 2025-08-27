@@ -3,6 +3,12 @@
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useAuthStore } from '@/stores/auth-store'
 import { useDashboardStore, DashboardSection } from '@/stores/dashboard-store'
 import {
@@ -59,9 +65,8 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
     // Use existing auth store states - single source of truth
     const user = useAuthStore(state => state.user)
     const currentRole = useAuthStore(state => state.currentRole)
-    const canAccess = useAuthStore(state => state.canAccess)
     
-    // Use centralized dashboard state
+    // Using a centralized dashboard state
     const activeSection = useDashboardStore(state => state.activeSection)
     const setActiveSection = useDashboardStore(state => state.setActiveSection)
 
@@ -118,21 +123,31 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
 
                 <ScrollArea className="flex-1 px-3">
                     <nav className="space-y-2">
-                        {filteredItems.map((item) => (
-                            <Button
-                                key={item.id}
-                                variant={activeSection === item.id ? "secondary" : "ghost"}
-                                className={cn(
-                                    "w-full justify-start",
-                                    collapsed && "justify-center px-2"
-                                )}
-                                onClick={() => setActiveSection(item.id)}>
-                                <item.icon className="h-4 w-4" />
-                                {!collapsed && (
-                                    <span className="ml-2">{item.label}</span>
-                                )}
-                            </Button>
-                        ))}
+                        <TooltipProvider>
+                            {filteredItems.map((item) => (
+                                <Tooltip key={item.id}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant={activeSection === item.id ? "secondary" : "ghost"}
+                                            className={cn(
+                                                "w-full justify-start",
+                                                collapsed && "justify-center px-2"
+                                            )}
+                                            onClick={() => setActiveSection(item.id)}>
+                                            <item.icon className="h-4 w-4" />
+                                            {!collapsed && (
+                                                <span className="ml-2">{item.label}</span>
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    {collapsed && (
+                                        <TooltipContent side="right" className="ml-2">
+                                            <p>{item.label}</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+                            ))}
+                        </TooltipProvider>
                     </nav>
                 </ScrollArea>
             </div>

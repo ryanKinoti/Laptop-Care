@@ -11,7 +11,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({children}: DashboardLayoutProps) {
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
     const user = useAuthStore(state => state.user)
     const canAccess = useAuthStore(state => state.canAccess)
 

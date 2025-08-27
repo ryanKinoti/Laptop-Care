@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { getUserWithProfileAction, toggleUserStatusAction } from '@/lib/actions/user'
 import { UserWithProfile } from '@/lib/prisma/user'
+import { formatDate } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import { useDashboardStore } from '@/stores/dashboard-store'
 import { ArrowLeft, Mail, Phone, User, Building, MapPin, FileText, Shield, Calendar, Edit, ToggleLeft, ToggleRight, RefreshCw } from 'lucide-react'
@@ -100,9 +101,9 @@ export function UserDetails({ userId, onBack }: UserDetailsProps) {
         }
     }
 
-    const formatDate = (date: Date | string | null) => {
+    const formatUserDate = (date: Date | string | null) => {
         if (!date) return 'Not set'
-        return new Date(date).toLocaleDateString('en-US', {
+        return formatDate(date, {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -289,14 +290,14 @@ export function UserDetails({ userId, onBack }: UserDetailsProps) {
                         <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">Created:</span>
-                            <span>{formatDate(user.createdAt)}</span>
+                            <span>{formatUserDate(user.createdAt)}</span>
                         </div>
                         
                         {user.updatedAt && user.updatedAt !== user.createdAt && (
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <span className="font-medium">Updated:</span>
-                                <span>{formatDate(user.updatedAt)}</span>
+                                <span>{formatUserDate(user.updatedAt)}</span>
                             </div>
                         )}
                     </CardContent>

@@ -131,7 +131,7 @@ export function createDateColumn<T>(
 
             switch (options?.format || 'short') {
                 case 'long':
-                    formattedDate = date.toLocaleDateString('en-US', {
+                    formattedDate = date.toLocaleDateString('en-KE', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -141,10 +141,39 @@ export function createDateColumn<T>(
                     formattedDate = getRelativeTime(date)
                     break
                 default:
-                    formattedDate = date.toLocaleDateString()
+                    formattedDate = date.toLocaleDateString('en-KE')
             }
 
             return <div className={options?.className}>{formattedDate}</div>
+        },
+    }
+}
+
+export function createCurrencyColumn<T>(
+    accessor: keyof T,
+    header: string,
+    options?: {
+        currency?: string
+        locale?: string
+        className?: string
+    }
+): ColumnDef<T> {
+    return {
+        accessorKey: accessor as string,
+        header,
+        cell: ({row}) => {
+            const value = row.getValue(accessor as string)
+            if (value === null || value === undefined) return <div className={options?.className}>N/A</div>
+
+            const amount = Number(value)
+            const formatted = new Intl.NumberFormat(options?.locale || 'en-KE', {
+                style: 'currency',
+                currency: options?.currency || 'KES',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(amount)
+
+            return <div className={`font-mono font-medium ${options?.className || ''}`}>{formatted}</div>
         },
     }
 }
@@ -231,7 +260,7 @@ function getRelativeTime(date: Date): string {
     } else if (diffInDays < 7) {
         return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`
     } else {
-        return date.toLocaleDateString()
+        return date.toLocaleDateString('en-KE')
     }
 }
 
@@ -261,6 +290,25 @@ export const commonFilters = {
         id: 'role',
         label: 'Role',
         options: roles,
+        defaultValue: 'all',
+    }),
+
+    deviceType: () => ({
+        id: 'device',
+        label: 'Device Type',
+        options: [
+            {label: 'Laptop', value: 'LAPTOP'},
+            {label: 'Phone', value: 'PHONE'},
+            {label: 'Tablet', value: 'TABLET'},
+            {label: 'Gaming', value: 'GAMING'},
+        ],
+        defaultValue: 'all',
+    }),
+
+    serviceCategory: (categories: { label: string; value: string }[]) => ({
+        id: 'categoryId',
+        label: 'Category',
+        options: categories,
         defaultValue: 'all',
     }),
 }
@@ -318,6 +366,42 @@ export const commonBadges = {
             label: role === 'COMPANY' ? 'Business Customer' : 'Individual Customer',
             variant: 'outline' as const,
             className: 'bg-purple-50 text-purple-700 border-purple-200',
+        }
+    },
+
+    deviceType: (value: unknown) => {
+        const device = String(value)
+        const configs = {
+            LAPTOP: {
+                label: 'Laptop',
+                className: 'bg-blue-50 text-blue-700 border-blue-200'
+            },
+            PHONE: {
+                label: 'Phone',
+                className: 'bg-green-50 text-green-700 border-green-200'
+            },
+            TABLET: {
+                label: 'Tablet',
+                className: 'bg-purple-50 text-purple-700 border-purple-200'
+            },
+            GAMING: {
+                label: 'Gaming',
+                className: 'bg-red-50 text-red-700 border-red-200'
+            },
+        }
+        return {
+            label: configs[device as keyof typeof configs]?.label || device.charAt(0).toUpperCase() + device.slice(1).toLowerCase(),
+            variant: 'secondary' as const,
+            className: configs[device as keyof typeof configs]?.className || '',
+        }
+    },
+
+    serviceCategory: (value: unknown) => {
+        const category = String(value)
+        return {
+            label: category,
+            variant: 'outline' as const,
+            className: 'bg-slate-50 text-slate-700 border-slate-200',
         }
     },
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, {useState, useEffect} from 'react'
+import {formatCurrency} from '@/lib/utils'
 import {
     Dialog,
     DialogContent,
@@ -89,12 +90,7 @@ export function ServiceDetailsModal({
         }
     }
 
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'KES'
-        }).format(price)
-    }
+    // Using centralized formatCurrency from utils
 
     if (!isOpen) return null
 
@@ -156,7 +152,7 @@ export function ServiceDetailsModal({
                                 </div>
                                 <div className="text-right">
                                     <div className="text-2xl font-bold text-primary">
-                                        {formatPrice(service.price)}
+                                        {formatCurrency(service.price)}
                                     </div>
                                     <p className="text-sm text-muted-foreground">Starting from</p>
                                 </div>
@@ -193,7 +189,7 @@ export function ServiceDetailsModal({
                                 <div>
                                     <p className="text-sm font-medium">Base Price</p>
                                     <p className="text-sm text-muted-foreground">
-                                        {formatPrice(service.price)}
+                                        {formatCurrency(service.price)}
                                     </p>
                                 </div>
                             </div>

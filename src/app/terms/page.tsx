@@ -2,6 +2,7 @@ import Link from "next/link";
 import {Navigation} from '@/components/navigation';
 import {ArrowLeft} from "lucide-react";
 import {Button} from "@/components/ui/button";
+import {formatDate} from '@/lib/utils';
 
 export default function TermsAndConditions() {
     return (
@@ -31,7 +32,7 @@ export default function TermsAndConditions() {
                             Laptop Care Ltd
                         </p>
                         <p className="text-sm mt-2 text-muted-foreground">
-                            Last updated: {new Date().toLocaleDateString()}
+                            Last updated: {formatDate(new Date())}
                         </p>
                     </div>
 
