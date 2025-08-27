@@ -1,6 +1,6 @@
 'use client'
 
-import {signIn, signOut} from "next-auth/react"
+import {signInAction} from "@/lib/actions/auth"
 import {Button} from "@/components/ui/button"
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar"
 import {Skeleton} from "@/components/ui/skeleton"
@@ -15,6 +15,7 @@ import {
 import {User, LogOut, BarChart3} from "lucide-react"
 import {useAuthStore, useAuthSync} from '@/stores/auth-store'
 import Link from "next/link"
+import {signOut} from "next-auth/react";
 
 export function AuthButtons() {
     const {isInitialized, status} = useAuthSync()
@@ -34,9 +35,11 @@ export function AuthButtons() {
 
     if (!user || !session?.user) {
         return (
-            <Button onClick={() => signIn()} variant="outline" size="sm">
-                Sign In
-            </Button>
+            <form action={signInAction}>
+                <Button type="submit" variant="outline" size="sm">
+                    Sign In
+                </Button>
+            </form>
         )
     }
 
@@ -85,6 +88,18 @@ export function AuthButtons() {
                     <Link href="/dashboard">
                         <BarChart3 className="mr-2 h-4 w-4"/>
                         <span>Dashboard</span>
+                    </Link>
+                </DropdownMenuItem>
+            )
+        }
+
+        // Customer roles: Customer portal access
+        if (currentRole === 'customer' && canAccess('customerOrders')) {
+            items.push(
+                <DropdownMenuItem key="customer-dashboard" asChild>
+                    <Link href="/customer">
+                        <BarChart3 className="mr-2 h-4 w-4"/>
+                        <span>My Account</span>
                     </Link>
                 </DropdownMenuItem>
             )

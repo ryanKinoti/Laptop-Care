@@ -59,7 +59,7 @@ function DashboardHeaderContent({sidebarCollapsed, setSidebarCollapsed}: Dashboa
                             alt="Laptop Care Services"
                             width={80}
                             height={30}
-                            className="bg-white rounded-md w-auto h-auto"
+                            className="bg-white rounded-md w-auto h-auto my-4"
                             priority
                         />
                     </Link>

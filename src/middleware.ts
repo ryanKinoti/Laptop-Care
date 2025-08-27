@@ -8,6 +8,7 @@ const publicPaths = [
     "/about",
     "/events",
     "/terms",
+    "/services",
     "/api/auth/(.*)"
 ] // Auth API routes should be public
 
@@ -26,38 +27,75 @@ export default auth((req) => {
     const isLoggedIn = !!req.auth;
     const path = nextUrl.pathname;
 
-    // Allow access to public paths regardless of authentication status
-    if (isPublicPath(path)) {
+    // First, handle public paths (except home page for authenticated users)
+    if (isPublicPath(path) && !(path === '/' && isLoggedIn)) {
         return NextResponse.next();
     }
 
-    // Handle dashboard routes - require authentication and staff access
-    if (path.startsWith('/dashboard')) {
-        if (!isLoggedIn) {
-            const signInUrl = new URL('/auth/signin', nextUrl);
-            signInUrl.searchParams.set('callbackUrl', nextUrl.href);
-            return NextResponse.redirect(signInUrl);
-        }
+    // Handle home page redirect for authenticated users
+    if (path === '/' && isLoggedIn) {
+        const user = req.auth?.user;
         
-        // Check if a user is staff
-        if (!req.auth?.user?.isStaff) {
-            // Redirect non-staff users to home
-            return NextResponse.redirect(new URL('/', nextUrl));
+        // Redirect authenticated users to their appropriate dashboard
+        if (user?.isStaff) {
+            return NextResponse.redirect(new URL('/dashboard', nextUrl));
+        } else {
+            return NextResponse.redirect(new URL('/customer', nextUrl));
         }
     }
 
-    // Redirect unauthenticated users to sign-in page for other protected routes
+    // Require authentication for all protected routes
     if (!isLoggedIn) {
-        return NextResponse.redirect(new URL("/api/auth/signin", nextUrl));
+        const signInUrl = new URL('/auth/signin', nextUrl);
+        signInUrl.searchParams.set('callbackUrl', nextUrl.href);
+        return NextResponse.redirect(signInUrl);
     }
+
+    // Role-based route protection for authenticated users
+    const user = req.auth?.user;
+
+    // Handle dashboard routes - require staff access
+    if (path.startsWith('/dashboard')) {
+        if (!user?.isStaff) {
+            // Redirect non-staff users to customer dashboard
+            return NextResponse.redirect(new URL('/customer', nextUrl));
+        }
+        return NextResponse.next();
+    }
+
+    // Handle customer routes - require customer role
+    if (path.startsWith('/customer')) {
+        if (user?.isStaff) {
+            // Redirect staff users to dashboard
+            return NextResponse.redirect(new URL('/dashboard', nextUrl));
+        }
+        return NextResponse.next();
+    }
+
+    // Handle admin routes (future expansion)
+    if (path.startsWith('/admin')) {
+        if (!user?.isSuperuser && !(user?.isStaff && user?.staffRole === 'ADMINISTRATOR')) {
+            // Redirect non-admin users based on their role
+            if (user?.isStaff) {
+                return NextResponse.redirect(new URL('/dashboard', nextUrl));
+            } else {
+                return NextResponse.redirect(new URL('/customer', nextUrl));
+            }
+        }
+        return NextResponse.next();
+    }
+
+    // Default: allow access to other authenticated routes
     return NextResponse.next();
 });
 
 // Configure which paths the middleware should run on
 export const config = {
     matcher: [
-        "/dashboard/:path*",  // Protect dashboard routes
-        // "/admin/:path*",      // Protect admin routes (when implemented)
-        // "/profile/:path*",    // Protect profile routes (when implemented)
+        "/",                  // Handle home page redirects for authenticated users
+        "/dashboard/:path*",  // Protect dashboard routes (staff only)
+        "/customer/:path*",   // Protect customer routes (customers only)
+        "/admin/:path*",      // Protect admin routes (admin+ only)
+        "/profile/:path*",    // Protect profile routes (authenticated users)
     ],
 };

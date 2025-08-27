@@ -156,7 +156,7 @@ export async function seedUsers() {
                 const { isStaff, isSuperuser } = determineUserFlags(staff.role);
                 const staffRole = mapToStaffRole(staff.role);
 
-                // Determine preferred contact method
+                // Determine the preferred contact method
                 const preferredContact = staff.preferred_contact?.toLowerCase() === 'phone'
                     ? ContactMethod.PHONE
                     : ContactMethod.EMAIL;

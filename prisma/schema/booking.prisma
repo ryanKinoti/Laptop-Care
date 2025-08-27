@@ -1,0 +1,43 @@
+model Booking {
+  id      String @id @default(cuid())
+  jobCard Int    @default(autoincrement()) @unique
+
+  customerId    String        @map("customer_id")
+  technicianId  String?       @map("technician_id")
+  serviceId     String        @map("detailed_service")
+  deviceId      String        @map("device_id")
+  status        BookingStatus @default(PENDING)
+  scheduledTime DateTime?
+  isActive      Boolean       @default(true)
+
+  // additional info
+  notes     String?
+  diagnosis String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relationships
+  customer        User            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  technician      StaffProfile?   @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  detailedService Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  device          Device          @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  bookingParts    BookingParts[]
+  transaction     Transaction?
+  repairHistories RepairHistory[]
+
+  @@map("bookings")
+}
+
+model BookingParts {
+  id        String @id @default(cuid())
+  bookingId String @map("booking_id")
+  partId    String @map("part_id")
+  quantity  Int    @default(1)
+
+  // relationships
+  booking Booking    @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  part    DevicePart @relation(fields: [partId], references: [id], onDelete: Restrict)
+
+  @@unique([bookingId, partId])
+  @@map("booking_parts")
+}

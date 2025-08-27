@@ -18,6 +18,7 @@ model Device {
   customer      User?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
   parts         DevicePart[]
   repairHistory RepairHistory[]
+  bookings      Booking[]
 
   @@map("devices")
 }
@@ -41,6 +42,7 @@ model DevicePart {
   customerDevice Device?         @relation(fields: [customerDeviceId], references: [id], onDelete: SetNull)
   movements      PartMovement[]
   repairHistory  RepairHistory[] @relation("RepairedParts")
+  bookingParts   BookingParts[]
 
   @@map("device_parts")
 }
@@ -74,6 +76,7 @@ model RepairHistory {
   device     Device        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   technician StaffProfile? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   partsUsed  DevicePart[]  @relation("RepairedParts")
+  booking    Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
   @@map("device_repair_histories")
 }

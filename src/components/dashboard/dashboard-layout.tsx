@@ -1,10 +1,8 @@
 'use client'
 
 import React, {useState} from 'react'
-import {useAuthStore} from '@/stores/auth-store'
 import {DashboardHeader} from './dashboard-header'
 import {DashboardSidebar} from './dashboard-sidebar'
-import {redirect} from 'next/navigation'
 
 interface DashboardLayoutProps {
     children: React.ReactNode
@@ -12,13 +10,6 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({children}: DashboardLayoutProps) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
-    const user = useAuthStore(state => state.user)
-    const canAccess = useAuthStore(state => state.canAccess)
-
-    // Redirect non-staff users
-    if (!user?.isStaff || !canAccess('dashboard')) {
-        redirect('/')
-    }
 
     return (
         <div className="h-screen flex flex-col bg-background">

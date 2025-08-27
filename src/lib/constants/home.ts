@@ -188,8 +188,6 @@ export const FOOTER_CONTENT = {
             title: "Company",
             links: [
                 {name: "About Us", href: "/about"},
-                {name: "Careers", href: "/careers"},
-                {name: "Blog", href: "/blog"},
                 {name: "Privacy Policy", href: "/privacy"},
                 {name: "Terms & Conditions", href: "/terms"}
             ]

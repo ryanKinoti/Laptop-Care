@@ -22,7 +22,8 @@ model Service {
   isActive      Boolean    @default(true)
 
   // relationships
-  category ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  bookings Booking[]
 
   @@map("services")
 }

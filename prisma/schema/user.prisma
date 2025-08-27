@@ -21,6 +21,9 @@ model User {
   staffProfile    StaffProfile?
   devices         Device[]
   partMovements   PartMovement[]
+  bookings        Booking[]
+  transactions    Transaction[]
+  paymentRecords  PaymentRecord[]
 
   @@index([email])
   @@map("users")
@@ -54,8 +57,10 @@ model StaffProfile {
   updatedAt DateTime @updatedAt
 
   // relationships
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  repairHistory RepairHistory[]
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repairHistory    RepairHistory[]
+  assignedBookings Booking[]
+  createdCharges   ChargeHistory[] @relation("CreatedCharges")
 
   @@map("staff_profiles")
 }

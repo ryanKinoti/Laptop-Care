@@ -1,0 +1,59 @@
+model Transaction {
+  id          String  @id @default(cuid())
+  createdById String? @map("created_by")
+  bookingId   String  @unique @map("booking_id")
+
+  transactionType TransactionType
+  totalAmount     Decimal?        @db.Decimal(10, 2)
+  amountPaid      Decimal?        @default(0) @db.Decimal(10, 2)
+  status          PaymentStatus   @default(PENDING)
+  paymentMethod   PaymentMethod
+  notes           String?
+  isActive        Boolean         @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relationships
+  createdBy     User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  booking       Booking?        @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  payments      PaymentRecord[]
+  chargeHistory ChargeHistory[]
+
+  @@map("transactions")
+}
+
+model PaymentRecord {
+  id            String        @id @default(cuid())
+  transactionId String
+  paidById      String        @map("paid_by")
+  amountPaid    Decimal       @db.Decimal(10, 2)
+  paymentDate   DateTime      @default(now())
+  paymentMethod PaymentMethod
+
+  // relationships
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  paidBy      User        @relation(fields: [paidById], references: [id], onDelete: SetNull)
+
+  @@map("payment_records")
+}
+
+model ChargeHistory {
+  id            String       @id @default(cuid())
+  transactionId String
+  createdById   String       @map("created_by")
+  chargeType    ChargeType
+  description   String
+  amount        Decimal      @db.Decimal(10, 2)
+  status        ChargeStatus @default(PROPOSED)
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relationships
+  transaction Transaction  @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  createdBy   StaffProfile @relation("CreatedCharges", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("charge_histories")
+}

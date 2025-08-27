@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Facebook, Instagram, Twitter } from 'lucide-react'
+import {FaFacebook, FaInstagram} from "react-icons/fa";
 import { FOOTER_CONTENT } from '@/lib/constants/home'
+import {FaXTwitter} from "react-icons/fa6";
 
 const socialIcons = {
-    facebook: Facebook,
-    instagram: Instagram,
-    twitter: Twitter,
+    facebook: FaFacebook,
+    instagram: FaInstagram,
+    twitter: FaXTwitter,
 } as const
 
 export function Footer() {

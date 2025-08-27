@@ -55,10 +55,82 @@ enum MovementType {
   @@map("movement_type")
 }
 
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+
+  @@map("booking_status")
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELED
+
+  @@map("payment_status")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  MOBILE_MONEY
+  BANK_TRANSFER
+
+  @@map("payment_method")
+}
+
+enum TransactionType {
+  BOOKING_PAYMENT
+  PARTS_PURCHASE
+
+  @@map("transaction_type")
+}
+
 enum SaleStatus {
   AVAILABLE
   SOLD
   RESERVED
 
   @@map("sale_status")
+}
+
+enum ChargeType {
+  SERVICE_CHARGE
+  PART_CHARGE
+  ADDITIONAL_CHARGE
+  DISCOUNT
+
+  @@map("charge_type")
+}
+
+enum ChargeStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+
+  @@map("charge_status")
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+
+  @@map("log_level")
+}
+
+enum ErrorSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@map("error_severity")
 }

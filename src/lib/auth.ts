@@ -162,24 +162,23 @@ export const {auth, handlers, signIn, signOut} = NextAuth({
         },
 
         async redirect({url, baseUrl}) {
-            // If there's a callbackUrl, use it
+            // If there's a callbackUrl, use it (but validate it's safe)
             const callbackUrl = new URLSearchParams(new URL(url).search).get('callbackUrl')
             if (callbackUrl) {
-                // Make sure callbackUrl is from the same origin
                 try {
                     const callbackURL = new URL(callbackUrl, baseUrl)
                     if (callbackURL.origin === new URL(baseUrl).origin) {
                         return callbackURL.toString()
                     }
-                } catch (error) {
-                    // Invalid URL, fall through to default redirect
+                } catch {
+                    // Invalid URL, fall through to role-based redirect
                 }
             }
 
-            // If redirecting after successful signin, determine where to go based on user role
+            // Role-based redirect after successful sign-in
             if (url === baseUrl || url.startsWith(baseUrl + '/auth/signin')) {
-                // This will be handled by the sign-in page component to check user role
-                // For now, just go to home and let the client-side handle the redirect
+                // We can't easily access user data in redirect callback, so we'll let middleware handle it
+                // Just redirect to home and let middleware route to appropriate dashboard
                 return baseUrl
             }
 
